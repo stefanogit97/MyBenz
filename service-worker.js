@@ -1,4 +1,4 @@
-const CACHE_NAME = "mybenz-v2";
+const CACHE_NAME = "mybenz-v3";
 
 const ASSETS = [
   "./",
