@@ -34,6 +34,77 @@ const chartsPanel = document.querySelector("#panel-grafici");
 const themeToggle = document.querySelector("#theme-toggle");
 const themeToggleIcon = document.querySelector("#theme-toggle-icon");
 const themeToggleLabel = document.querySelector("#theme-toggle-label");
+const historyList =
+  document.querySelector("#history-list");
+
+function renderHistory() {
+
+  historyList.replaceChildren();
+
+  const sorted =
+    [...records]
+      .sort(
+        (a, b) =>
+          b.date.localeCompare(a.date)
+      );
+
+  for (const record of sorted) {
+
+    const row =
+      document.createElement("tr");
+
+    let detail = "";
+
+    if (record.type === "fuel") {
+
+      detail =
+        `${record.fuelType} · ${record.liters} L`;
+
+    } else {
+
+      detail =
+        record.category;
+    }
+
+    row.innerHTML = `
+      <td>${record.date}</td>
+      <td>${record.type === "fuel" ? "Pieno" : "Spesa"}</td>
+      <td>${detail}</td>
+      <td>€ ${record.totalCost.toFixed(2)}</td>
+      <td>
+        <button
+          class="delete-button"
+          data-id="${record.id}">
+          Elimina
+        </button>
+      </td>
+    `;
+
+    historyList.append(row);
+  }
+
+  document
+    .querySelectorAll(".delete-button")
+    .forEach((button) => {
+
+      button.addEventListener(
+        "click",
+        () => {
+
+          records =
+            records.filter(
+              (record) =>
+                record.id !==
+                button.dataset.id
+            );
+
+          saveRecords();
+
+          renderHistory();
+        }
+      );
+    });
+}
 const recordType =
   document.querySelector("#record-type");
 
@@ -131,6 +202,7 @@ applyTheme(
 activateTab(registerTab);
 
 records = loadRecords();
+renderHistory();
 console.log(records);
 
 if ("serviceWorker" in navigator) {
