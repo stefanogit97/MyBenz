@@ -570,7 +570,7 @@ td {
 
 /* Campi numerici */
 .field input::placeholder {
-  color: #888;
+  color: #9aa5b1;
   opacity: 1;
 }
 
