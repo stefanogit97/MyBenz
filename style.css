@@ -495,3 +495,27 @@ td {
 .summary-card strong {
   font-weight: 800;
 }
+
+.period-filter {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 20px 0;
+  padding: 16px;
+  background: var(--card-bg, #fff);
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 16px;
+}
+
+.period-filter label {
+  font-weight: 800;
+}
+
+.period-filter select,
+.period-filter input {
+  padding: 10px;
+  border: 1px solid var(--border-color, #ddd);
+  border-radius: 10px;
+  font: inherit;
+}
