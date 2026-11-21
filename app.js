@@ -400,7 +400,7 @@ function renderCharts() {
 
   // 1. CONSUMO MEDIO PIENO-PIENO
 
-  const fuelRecords = records
+  const fuelRecords = periodRecords
     .filter(record => record.type === "fuel")
     .sort((a, b) => String(a.date).localeCompare(String(b.date)));
 
