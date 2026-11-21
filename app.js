@@ -260,12 +260,16 @@ historyList.addEventListener("click", (event) => {
 // ==========================================
 
 function renderSummary() {
-  const fuelRecords = records.filter(
+  const periodRecords = getFilteredRecords();
+
+  const fuelRecords = periodRecords.filter(
     record => record.type === "fuel"
   );
 
-  const expenseRecords = records.filter(
+  const expenseRecords = periodRecords.filter(
     record => record.type === "expense"
+  );
+    record => record.type === "fuel"
   );
 
   const totalLiters = fuelRecords.reduce(
@@ -386,6 +390,7 @@ function renderCharts() {
   const consumptionCanvas = $("#consumption-chart");
   const monthlyCanvas = $("#monthly-chart");
   const costCanvas = $("#cost-chart");
+  const periodRecords = getFilteredRecords();
 
   const styles = getComputedStyle(document.documentElement);
   const blue = "#1677ff";
