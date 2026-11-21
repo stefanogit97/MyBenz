@@ -909,13 +909,41 @@ renderHistory();
 renderSummary();
 renderCharts();
 
-if ("serviceWorker" in navigator) {
-  navigator.serviceWorker.register("./service-worker.js")
-    .catch(error => console.error("Service Worker:", error));
-}
+
+// ==========================================
+// AGGIORNAMENTO AUTOMATICO APP
+// ==========================================
 
 if ("serviceWorker" in navigator) {
   let refreshing = false;
+
+  navigator.serviceWorker.register("./service-worker.js")
+    .then(registration => {
+
+      // Controlla subito se esiste una nuova versione
+      registration.update();
+
+      // Controlla nuovamente quando l'app torna in primo piano
+      document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === "visible") {
+          registration.update();
+        }
+      });
+
+      // Ricarica automaticamente quando la nuova versione è attiva
+      navigator.serviceWorker.addEventListener("controllerchange", () => {
+        if (!refreshing) {
+          refreshing = true;
+          window.location.reload();
+        }
+      });
+
+    })
+    .catch(error => {
+      console.error("Errore aggiornamento MyPit:", error);
+    });
+}
+
 
   navigator.serviceWorker.register("./service-worker.js")
     .then(registration => {
