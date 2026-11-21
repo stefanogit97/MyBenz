@@ -1,7 +1,7 @@
 {
   "id": "/",
-  "name": "MyBenz",
-  "short_name": "MyBenz",
+  "name": "MyPit",
+  "short_name": "MyPit",
   "description": "Registro rifornimenti e spese auto",
   "start_url": "/",
   "scope": "/",
