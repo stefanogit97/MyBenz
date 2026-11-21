@@ -89,9 +89,135 @@
 
     <section id="panel-registro">
 
-      <h2>Nuovo movimento</h2>
+  <h2>Nuovo movimento</h2>
 
-    </section>
+  <form id="entry-form">
+
+    <div class="field">
+      <label for="record-type">Tipo</label>
+
+      <select id="record-type" name="record-type">
+
+        <option value="fuel">
+          Pieno
+        </option>
+
+        <option value="expense">
+          Spesa
+        </option>
+
+      </select>
+    </div>
+
+    <div id="fuel-fields">
+
+      <div class="field">
+        <label>Data</label>
+        <input type="date" id="fuel-date">
+      </div>
+
+      <div class="field">
+        <label>Km auto</label>
+        <input type="number" id="fuel-odometer">
+      </div>
+
+      <div class="field">
+        <label>Tipo carburante</label>
+
+        <select id="fuel-type">
+
+          <option>Benzina 95</option>
+          <option>Benzina 98</option>
+          <option>Diesel</option>
+          <option>GPL</option>
+          <option>Metano</option>
+          <option>Elettrico</option>
+          <option>Altro</option>
+
+        </select>
+      </div>
+
+      <div class="field">
+        <label>Litri</label>
+        <input type="number" step="0.01" id="fuel-liters">
+      </div>
+
+      <div class="field">
+        <label>Costo totale</label>
+        <input type="number" step="0.01" id="fuel-cost">
+      </div>
+
+      <div class="field">
+        <label>Distributore</label>
+        <input type="text" id="fuel-station">
+      </div>
+
+      <div class="field">
+        <label>Note</label>
+        <input type="text" id="fuel-note">
+      </div>
+
+    </div>
+
+    <div id="expense-fields" hidden>
+
+      <div class="field">
+        <label>Data</label>
+        <input type="date" id="expense-date">
+      </div>
+
+      <div class="field">
+        <label>Categoria</label>
+
+        <select id="expense-category">
+
+          <option>Tagliando</option>
+          <option>Cambio olio</option>
+          <option>Filtro aria</option>
+          <option>Filtro abitacolo</option>
+          <option>Pastiglie freni</option>
+          <option>Dischi freni</option>
+          <option>Gomme</option>
+          <option>Batteria</option>
+          <option>Revisione</option>
+          <option>Assicurazione</option>
+          <option>Bollo</option>
+          <option>Parcheggio</option>
+          <option>Pedaggio</option>
+          <option>Lavaggio</option>
+          <option>Altro</option>
+
+        </select>
+      </div>
+
+      <div class="field">
+        <label>Costo</label>
+        <input type="number" step="0.01" id="expense-cost">
+      </div>
+
+      <div class="field">
+        <label>Officina / Fornitore</label>
+        <input type="text" id="expense-vendor">
+      </div>
+
+      <div class="field">
+        <label>Note</label>
+        <input type="text" id="expense-note">
+      </div>
+
+    </div>
+
+    <button
+      class="theme-toggle"
+      type="submit">
+
+      Salva
+
+    </button>
+
+  </form>
+
+</section>
 
     <section
       id="panel-storico"
