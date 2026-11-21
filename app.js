@@ -627,12 +627,18 @@ function activateTab(tab) {
 
   tab.classList.add("is-active");
 
-  if (tab === registerTab) registerPanel.hidden = false;
-  if (tab === storicoTab) storicoPanel.hidden = false;
+  if (tab === registerTab) {
+    registerPanel.hidden = false;
+  }
+
+  if (tab === storicoTab) {
+    storicoPanel.hidden = false;
+  }
+
   if (tab === chartsTab) {
-  chartsPanel.hidden = false;
-  renderCharts();
-}
+    chartsPanel.hidden = false;
+    renderCharts();
+  }
 }
 
 registerTab.addEventListener("click", () => activateTab(registerTab));
