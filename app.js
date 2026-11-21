@@ -261,6 +261,7 @@ historyList.addEventListener("click", (event) => {
 // CALCOLO STATISTICHE
 // ==========================================
 
+
 function renderSummary() {
   const periodRecords = getFilteredRecords();
 
@@ -271,7 +272,7 @@ function renderSummary() {
   const expenseRecords = periodRecords.filter(
     record => record.type === "expense"
   );
-    
+
   const totalLiters = fuelRecords.reduce(
     (sum, record) => sum + (Number(record.liters) || 0),
     0
@@ -287,62 +288,38 @@ function renderSummary() {
     0
   );
 
-  const ordered = [...fuelRecords].sort(
-    (a, b) => String(a.date || "").localeCompare(String(b.date || ""))
-  );
+  // Ordina tutti i rifornimenti per data
+  const allFuel = records
+    .filter(record => record.type === "fuel")
+    .sort((a, b) =>
+      String(a.date || "").localeCompare(String(b.date || ""))
+    );
+
+  const selectedRecords = new Set(fuelRecords);
 
   let totalKm = 0;
-
-  for (let i = 1; i < ordered.length; i++) {
-    const previousKm = Number(ordered[i - 1].odometer);
-    const currentKm = Number(ordered[i].odometer);
-
-    if (
-      Number.isFinite(previousKm) &&
-      Number.isFinite(currentKm) &&
-      currentKm > previousKm
-    ) {
-      totalKm += currentKm - previousKm;
-    }
-  }
-
-  // Calcolo pieno-pieno.
-  // I vecchi rifornimenti senza fillType non vengono
-  // considerati automaticamente pieni completi.
-
-  let lastFull = null;
-  let litersSinceFull = 0;
-  let segmentHasUnknown = false;
   let consumptionKm = 0;
   let consumptionLiters = 0;
 
-  for (const record of ordered) {
-    if (!record.fillType) {
-      if (lastFull) segmentHasUnknown = true;
-      continue;
-    }
+  // Ogni rifornimento viene confrontato con il precedente
+  for (let i = 1; i < allFuel.length; i++) {
+    const previous = allFuel[i - 1];
+    const current = allFuel[i];
 
-    if (record.fillType === "full") {
-      if (lastFull && !segmentHasUnknown) {
-        const distance =
-          Number(record.odometer) - Number(lastFull.odometer);
+    if (!selectedRecords.has(current)) continue;
 
-        if (
-          Number.isFinite(distance) &&
-          distance > 0 &&
-          litersSinceFull > 0
-        ) {
-          consumptionKm += distance;
-          consumptionLiters += litersSinceFull;
-        }
+    const km =
+      Number(current.odometer) - Number(previous.odometer);
+
+    const liters = Number(current.liters) || 0;
+
+    if (Number.isFinite(km) && km > 0) {
+      totalKm += km;
+
+      if (liters > 0) {
+        consumptionKm += km;
+        consumptionLiters += liters;
       }
-
-      lastFull = record;
-      litersSinceFull = 0;
-      segmentHasUnknown = false;
-
-    } else if (record.fillType === "partial" && lastFull) {
-      litersSinceFull += Number(record.liters) || 0;
     }
   }
 
@@ -354,9 +331,12 @@ function renderSummary() {
   totalLitersElement.textContent = totalLiters.toFixed(1);
   fuelCostElement.textContent = formatEuro(fuelCost);
   expenseCostElement.textContent = formatEuro(expenseCost);
+
   $("#total-expenses").textContent =
-  formatEuro(fuelCost + expenseCost);
-  totalKmElement.textContent = totalKm.toLocaleString("it-IT");
+    formatEuro(fuelCost + expenseCost);
+
+  totalKmElement.textContent =
+    totalKm.toLocaleString("it-IT");
 
   avgConsumptionElement.textContent =
     avgConsumption === null
