@@ -12,6 +12,52 @@ let records = [];
 let storageHealthy = true;
 
 // ==========================================
+// FILTRO PERIODO
+// ==========================================
+
+const filterPeriod = $("#filter-period");
+const filterMonth = $("#filter-month");
+const filterYear = $("#filter-year");
+
+const today = new Date();
+
+filterMonth.value =
+  `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}`;
+
+filterYear.value = today.getFullYear();
+
+function getFilteredRecords() {
+  const period = filterPeriod.value;
+
+  if (period === "month") {
+    return records.filter(record =>
+      String(record.date || "").slice(0, 7) === filterMonth.value
+    );
+  }
+
+  if (period === "year") {
+    return records.filter(record =>
+      String(record.date || "").slice(0, 4) === filterYear.value
+    );
+  }
+
+  return records;
+}
+
+function updatePeriodFilter() {
+  filterMonth.hidden = filterPeriod.value !== "month";
+  filterYear.hidden = filterPeriod.value !== "year";
+
+  renderSummary();
+  renderCharts();
+}
+
+filterPeriod.addEventListener("change", updatePeriodFilter);
+filterMonth.addEventListener("change", updatePeriodFilter);
+filterYear.addEventListener("change", updatePeriodFilter);
+
+
+// ==========================================
 // ELEMENTI HTML
 // ==========================================
 
