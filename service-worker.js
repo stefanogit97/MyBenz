@@ -1,5 +1,5 @@
 
-const CACHE_NAME = "mypit-v2";
+const CACHE_NAME = "mypit-v3";
 
 const APP_FILES = [
   "./",
@@ -9,7 +9,7 @@ const APP_FILES = [
   "./manifest.json"
 ];
 
-// Installa la nuova versione e prepara la cache
+// INSTALLAZIONE
 self.addEventListener("install", event => {
   event.waitUntil(
     caches.open(CACHE_NAME)
@@ -18,38 +18,66 @@ self.addEventListener("install", event => {
   );
 });
 
-// Attiva la nuova versione ed elimina le vecchie cache
+// ATTIVAZIONE
 self.addEventListener("activate", event => {
   event.waitUntil(
     caches.keys()
-      .then(keys => Promise.all(
-        keys
-          .filter(key => key.startsWith("mypit-") && key !== CACHE_NAME)
-          .map(key => caches.delete(key))
-      ))
+      .then(keys =>
+        Promise.all(
+          keys
+            .filter(key =>
+              key.startsWith("mypit-") &&
+              key !== CACHE_NAME
+            )
+            .map(key => caches.delete(key))
+        )
+      )
       .then(() => self.clients.claim())
   );
 });
 
-// Gestisce le richieste dei file dell'app
+// RICHIESTE DEI FILE
 self.addEventListener("fetch", event => {
-  if (event.request.method !== "GET") return;
+  const request = event.request;
 
-  const url = new URL(event.request.url);
+  if (request.method !== "GET") return;
 
-  // Non intercetta richieste esterne
+  const url = new URL(request.url);
+
   if (url.origin !== self.location.origin) return;
 
+  // Le pagine HTML vengono sempre aggiornate dalla rete
+  if (request.mode === "navigate") {
+    event.respondWith(
+      fetch(request)
+        .then(response => {
+          if (response.ok) {
+            const copy = response.clone();
+            caches.open(CACHE_NAME)
+              .then(cache => cache.put(request, copy));
+          }
+          return response;
+        })
+        .catch(() =>
+          caches.match(request).then(cached =>
+            cached || caches.match("./index.html")
+          )
+        )
+    );
+    return;
+  }
+
+  // Per gli altri file: rete prima, cache come riserva
   event.respondWith(
-    fetch(event.request)
+    fetch(request)
       .then(response => {
-        if (response && response.ok) {
+        if (response.ok) {
           const copy = response.clone();
           caches.open(CACHE_NAME)
-            .then(cache => cache.put(event.request, copy));
+            .then(cache => cache.put(request, copy));
         }
         return response;
       })
-      .catch(() => caches.match(event.request))
+      .catch(() => caches.match(request))
   );
 });
