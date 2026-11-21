@@ -150,6 +150,14 @@
       </div>
 
       <div class="field">
+  <label for="fuel-fill-type">Tipo rifornimento</label>
+  <select id="fuel-fill-type" required>
+    <option value="partial">Parziale</option>
+    <option value="full">Pieno completo</option>
+  </select>
+</div>
+
+      <div class="field">
         <label>Tipo carburante</label>
 
         <select id="fuel-type">
@@ -171,7 +179,7 @@
 
       <div class="field">
         <label>Costo totale</label>
-        <input type="number" step="0.01" id="fuel-cost">
+        <input type="number" step="0.01" id="fuel-cost-input" min="0.01" required>
       </div>
 
       <div class="field">
@@ -219,7 +227,7 @@
 
       <div class="field">
         <label>Costo</label>
-        <input type="number" step="0.01" id="expense-cost">
+        <input type="number" step="0.01" id="expense-cost-input" min="0.01" required>
       </div>
 
       <div class="field">
