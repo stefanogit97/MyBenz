@@ -2,7 +2,7 @@
 "use strict";
 
 // ==========================================
-// MY BENZ - CONFIGURAZIONE
+// MY PIT - CONFIGURAZIONE
 // ==========================================
 
 const STORAGE_KEY = "mypit.records.v1";
