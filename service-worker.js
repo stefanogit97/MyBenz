@@ -1,51 +1,41 @@
-const CACHE_NAME = "patrimonio-app-v34";
-const FILES_TO_CACHE = [
+const CACHE_NAME = "mybenz-v1";
+
+const ASSETS = [
   "./",
   "./index.html",
+  "./style.css",
+  "./app.js",
   "./manifest.webmanifest",
-  "./icon.svg",
   "./icon-192.png",
   "./icon-512.png"
 ];
 
-self.addEventListener("install", (evento) => {
-  evento.waitUntil(
+self.addEventListener("install", (event) => {
+  event.waitUntil(
     caches.open(CACHE_NAME)
-      .then((cache) => cache.addAll(FILES_TO_CACHE))
-      .then(() => self.skipWaiting())
+      .then((cache) => cache.addAll(ASSETS))
   );
+
+  self.skipWaiting();
 });
 
-self.addEventListener("activate", (evento) => {
-  evento.waitUntil(
-    caches.keys()
-      .then((chiavi) => Promise.all(
-        chiavi
-          .filter((chiave) => chiave.startsWith("patrimonio-app-") && chiave !== CACHE_NAME)
-          .map((chiave) => caches.delete(chiave))
-      ))
-      .then(() => self.clients.claim())
+self.addEventListener("activate", (event) => {
+  event.waitUntil(
+    caches.keys().then((keys) =>
+      Promise.all(
+        keys
+          .filter((key) => key !== CACHE_NAME)
+          .map((key) => caches.delete(key))
+      )
+    )
   );
+
+  self.clients.claim();
 });
 
-self.addEventListener("fetch", (evento) => {
-  if (evento.request.method !== "GET" || new URL(evento.request.url).origin !== self.location.origin) {
-    return;
-  }
-
-  evento.respondWith(
-    fetch(evento.request)
-      .then((risposta) => {
-        if (risposta.ok) {
-          const copia = risposta.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(evento.request, copia));
-        }
-        return risposta;
-      })
-      .catch(() => caches.match(evento.request).then((risposta) => {
-        if (risposta) return risposta;
-        if (evento.request.mode === "navigate") return caches.match("./index.html");
-        return Response.error();
-      }))
+self.addEventListener("fetch", (event) => {
+  event.respondWith(
+    caches.match(event.request)
+      .then((response) => response || fetch(event.request))
   );
 });
