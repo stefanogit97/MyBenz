@@ -1,7 +1,28 @@
 "use strict";
+const STORAGE_KEY = "mybenz.records.v1";
+function loadRecords() {
 
+  const raw =
+    localStorage.getItem(STORAGE_KEY);
+
+  if (!raw) {
+    return [];
+  }
+
+  return JSON.parse(raw);
+}
+
+function saveRecords() {
+
+  localStorage.setItem(
+    STORAGE_KEY,
+    JSON.stringify(records)
+  );
+}
+let records = [];
 const THEME_STORAGE_KEY = "mybenz.theme.v1";
-
+const entryForm =
+  document.querySelector("#entry-form");
 const registerTab = document.querySelector("#tab-registro");
 const storicoTab = document.querySelector("#tab-storico");
 const chartsTab = document.querySelector("#tab-grafici");
@@ -109,8 +130,95 @@ applyTheme(
 
 activateTab(registerTab);
 
+records = loadRecords();
+console.log(records);
+
 if ("serviceWorker" in navigator) {
   navigator.serviceWorker.register(
     "./service-worker.js"
   );
 }
+entryForm.addEventListener(
+  "submit",
+  (event) => {
+
+    event.preventDefault();
+
+    if (
+      recordType.value === "fuel"
+    ) {
+
+      const record = {
+
+        id: crypto.randomUUID(),
+
+        type: "fuel",
+
+        date:
+          document.querySelector("#fuel-date").value,
+
+        odometer:
+          Number(
+            document.querySelector("#fuel-odometer").value
+          ),
+
+        fuelType:
+          document.querySelector("#fuel-type").value,
+
+        liters:
+          Number(
+            document.querySelector("#fuel-liters").value
+          ),
+
+        totalCost:
+          Number(
+            document.querySelector("#fuel-cost").value
+          ),
+
+        station:
+          document.querySelector("#fuel-station").value,
+
+        note:
+          document.querySelector("#fuel-note").value
+
+      };
+
+      records.push(record);
+
+    } else {
+
+      const record = {
+
+        id: crypto.randomUUID(),
+
+        type: "expense",
+
+        date:
+          document.querySelector("#expense-date").value,
+
+        category:
+          document.querySelector("#expense-category").value,
+
+        totalCost:
+          Number(
+            document.querySelector("#expense-cost").value
+          ),
+
+        vendor:
+          document.querySelector("#expense-vendor").value,
+
+        note:
+          document.querySelector("#expense-note").value
+
+      };
+
+      records.push(record);
+    }
+
+    saveRecords();
+
+    console.log(records);
+
+    alert("Movimento salvato");
+  }
+);
