@@ -1,41 +1,55 @@
-const CACHE_NAME = "mypit";
 
-const ASSETS = [
+const CACHE_NAME = "mypit-v2";
+
+const APP_FILES = [
   "./",
   "./index.html",
   "./style.css",
   "./app.js",
-  "./manifest.webmanifest",
-  "./icon-192.png",
-  "./icon-512.png"
+  "./manifest.json"
 ];
 
-self.addEventListener("install", (event) => {
+// Installa la nuova versione e prepara la cache
+self.addEventListener("install", event => {
   event.waitUntil(
     caches.open(CACHE_NAME)
-      .then((cache) => cache.addAll(ASSETS))
+      .then(cache => cache.addAll(APP_FILES))
+      .then(() => self.skipWaiting())
   );
-
-  self.skipWaiting();
 });
 
-self.addEventListener("activate", (event) => {
+// Attiva la nuova versione ed elimina le vecchie cache
+self.addEventListener("activate", event => {
   event.waitUntil(
-    caches.keys().then((keys) =>
-      Promise.all(
+    caches.keys()
+      .then(keys => Promise.all(
         keys
-          .filter((key) => key !== CACHE_NAME)
-          .map((key) => caches.delete(key))
-      )
-    )
+          .filter(key => key.startsWith("mypit-") && key !== CACHE_NAME)
+          .map(key => caches.delete(key))
+      ))
+      .then(() => self.clients.claim())
   );
-
-  self.clients.claim();
 });
 
-self.addEventListener("fetch", (event) => {
+// Gestisce le richieste dei file dell'app
+self.addEventListener("fetch", event => {
+  if (event.request.method !== "GET") return;
+
+  const url = new URL(event.request.url);
+
+  // Non intercetta richieste esterne
+  if (url.origin !== self.location.origin) return;
+
   event.respondWith(
-    caches.match(event.request)
-      .then((response) => response || fetch(event.request))
+    fetch(event.request)
+      .then(response => {
+        if (response && response.ok) {
+          const copy = response.clone();
+          caches.open(CACHE_NAME)
+            .then(cache => cache.put(event.request, copy));
+        }
+        return response;
+      })
+      .catch(() => caches.match(event.request))
   );
 });
