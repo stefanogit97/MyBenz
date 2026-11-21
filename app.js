@@ -120,6 +120,73 @@ function renderHistory() {
       );
     });
 }
+
+function renderSummary() {
+
+  const fuelRecords =
+    records.filter(
+      (record) => record.type === "fuel"
+    );
+
+  const expenseRecords =
+    records.filter(
+      (record) => record.type === "expense"
+    );
+
+  const totalLiters =
+    fuelRecords.reduce(
+      (sum, record) => sum + record.liters,
+      0
+    );
+
+  const fuelCost =
+    fuelRecords.reduce(
+      (sum, record) => sum + record.totalCost,
+      0
+    );
+
+  const expenseCost =
+    expenseRecords.reduce(
+      (sum, record) => sum + record.totalCost,
+      0
+    );
+
+  let totalKm = 0;
+
+  const orderedFuelRecords =
+    [...fuelRecords]
+      .sort(
+        (a, b) =>
+          a.odometer - b.odometer
+      );
+
+  for (let i = 1; i < orderedFuelRecords.length; i++) {
+
+    totalKm +=
+      orderedFuelRecords[i].odometer -
+      orderedFuelRecords[i - 1].odometer;
+  }
+
+  const avgConsumption =
+    totalLiters > 0
+      ? totalKm / totalLiters
+      : 0;
+
+  totalLitersElement.textContent =
+    totalLiters.toFixed(1);
+
+  fuelCostElement.textContent =
+    `€ ${fuelCost.toFixed(2)}`;
+
+  expenseCostElement.textContent =
+    `€ ${expenseCost.toFixed(2)}`;
+
+  totalKmElement.textContent =
+    totalKm.toLocaleString();
+
+  avgConsumptionElement.textContent =
+    `${avgConsumption.toFixed(1)} km/l`;
+}
 const recordType =
   document.querySelector("#record-type");
 
