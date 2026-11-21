@@ -491,3 +491,7 @@ td {
     grid-template-columns: 1fr;
   }
 }
+.summary-card span,
+.summary-card strong {
+  font-weight: 800;
+}
