@@ -496,7 +496,7 @@ function renderCharts() {
 
   const months = {};
 
-  records.forEach(record => {
+  periodRecords.forEach(record => {
     const month = String(record.date || "").slice(0, 7);
     if (!/^\d{4}-\d{2}$/.test(month)) return;
 
@@ -557,11 +557,11 @@ function renderCharts() {
 
   // 3. DISTRIBUZIONE DEI COSTI
 
-  const fuelTotal = records
+  const fuelTotal = periodRecords
     .filter(record => record.type === "fuel")
     .reduce((sum, record) => sum + (Number(record.totalCost) || 0), 0);
 
-  const expenseTotal = records
+  const expenseTotal = periodRecords
     .filter(record => record.type === "expense")
     .reduce((sum, record) => sum + (Number(record.totalCost) || 0), 0);
 
