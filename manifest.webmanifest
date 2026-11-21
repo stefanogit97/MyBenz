@@ -1,3 +1,4 @@
+
 {
   "id": "/",
   "name": "MyPit",
@@ -11,9 +12,9 @@
   "orientation": "portrait",
   "icons": [
     {
-      "src": "icon-192.png",
-      "sizes": "192x192",
-      "type": "image/png",
+      "src": "icon-home.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
       "purpose": "any"
     },
     {
@@ -23,10 +24,10 @@
       "purpose": "any"
     },
     {
-      "src": "icon-maskable-512.png",
-      "sizes": "512x512",
+      "src": "icon-192.png",
+      "sizes": "192x192",
       "type": "image/png",
-      "purpose": "maskable"
+      "purpose": "any"
     }
   ]
 }
