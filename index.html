@@ -34,26 +34,6 @@
       </div>
     </section>
 
-    <div class="period-filter">
-      <label for="filter-period">Periodo del riepilogo e dei grafici</label>
-      <select id="filter-period">
-        <option value="all">Da sempre</option>
-        <option value="month">Per mese</option>
-        <option value="year">Per anno</option>
-      </select>
-      <input type="month" id="filter-month" hidden>
-      <input type="number" id="filter-year" min="2000" max="2100" placeholder="Anno" hidden>
-    </div>
-
-    <section class="summary-grid">
-      <div class="summary-card"><span>Litri totali</span><strong id="total-liters">0,0</strong></div>
-      <div class="summary-card"><span>Km percorsi</span><strong id="total-km">0</strong></div>
-      <div class="summary-card"><span>Consumo medio</span><strong id="avg-consumption">—</strong></div>
-      <div class="summary-card"><span>Spese carburante</span><strong id="fuel-cost">€ 0,00</strong></div>
-      <div class="summary-card"><span>Altre spese</span><strong id="expense-cost">€ 0,00</strong></div>
-      <div class="summary-card"><span>Spese totali</span><strong id="total-expenses">€ 0,00</strong></div>
-    </section>
-
     <nav class="tabs">
       <button id="tab-registro" class="tab-button is-active" type="button">Registro</button>
       <button id="tab-storico" class="tab-button" type="button">Pieni e Spese</button>
@@ -61,7 +41,7 @@
     </nav>
 
     <section id="panel-registro">
-      <h2>Registra un movimento</h2>
+      <h2>Registra un rifornimento o spesa</h2>
       <form id="entry-form">
         <div class="field">
           <label for="record-type">Movimento</label>
@@ -135,10 +115,30 @@
         </div>
         <button class="theme-toggle submit-button" type="submit">Salva</button>
       </form>
+    <div class="period-filter" id="period-filter-control">
+      <label for="filter-period">Periodo</label>
+      <select id="filter-period"><option value="all">Da sempre</option><option value="month">Per mese</option><option value="year">Per anno</option></select>
+      <input type="month" id="filter-month" hidden>
+      <input type="number" id="filter-year" min="2000" max="2100" placeholder="Anno" hidden>
+    </div>
+
+      <div class="summary-section">
+        <h2>Riepilogo</h2>
+        <div id="period-filter-slot-registro"></div>
+        <section class="summary-grid">
+          <div class="summary-card"><span>Litri totali</span><strong id="total-liters">0,0</strong></div>
+          <div class="summary-card"><span>Km percorsi</span><strong id="total-km">0</strong></div>
+          <div class="summary-card"><span>Consumo medio</span><strong id="avg-consumption">—</strong></div>
+          <div class="summary-card"><span>Spese carburante</span><strong id="fuel-cost">€ 0,00</strong></div>
+          <div class="summary-card"><span>Altre spese</span><strong id="expense-cost">€ 0,00</strong></div>
+          <div class="summary-card"><span>Spese totali</span><strong id="total-expenses">€ 0,00</strong></div>
+        </div>
+      </div>
     </section>
 
     <section id="panel-storico" hidden>
       <h2>Pieni e Spese</h2>
+      <div id="period-filter-slot-storico"></div>
       <div class="table-wrap">
         <table>
           <thead><tr><th>Data</th><th>Tipo</th><th>Dettaglio</th><th>Costo</th><th></th></tr></thead>
@@ -149,22 +149,12 @@
 
     <section id="panel-grafici" hidden>
       <h2>Andamento della tua auto</h2>
+      <div id="period-filter-slot-grafici"></div>
       <div class="charts-grid">
-        <div class="chart-card">
-          <h3>Consumo medio</h3>
-          <p class="chart-period" id="consumption-period">Da sempre</p>
-          <canvas id="consumption-chart"></canvas>
-        </div>
-        <div class="chart-card">
-          <h3>Spese nel periodo</h3>
-          <p class="chart-period" id="monthly-period">Da sempre</p>
-          <canvas id="monthly-chart"></canvas>
-        </div>
-        <div class="chart-card">
-          <h3>Distribuzione dei costi</h3>
-          <p class="chart-period" id="cost-period">Da sempre</p>
-          <canvas id="cost-chart"></canvas>
-        </div>
+        <div class="chart-card"><h3>Consumo medio</h3><p class="chart-period" id="consumption-period">Da sempre</p><canvas id="consumption-chart"></canvas></div>
+        <div class="chart-card"><h3>Andamento dei consumi</h3><p class="chart-period" id="trend-period">Da sempre</p><canvas id="trend-chart"></canvas></div>
+        <div class="chart-card"><h3>Spese per periodo</h3><p class="chart-period" id="monthly-period">Da sempre</p><canvas id="monthly-chart"></canvas></div>
+        <div class="chart-card"><h3>Distribuzione delle spese</h3><p class="chart-period" id="cost-period">Da sempre</p><canvas id="cost-chart"></canvas></div>
       </div>
     </section>
   </main>

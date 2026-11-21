@@ -83,3 +83,12 @@ td { padding: 12px; border-bottom: 1px solid var(--line); color: var(--ink); }
   .tab-button { padding: 0 12px; }
   .chart-card { padding: 14px; }
 }
+
+/* MyPit: nuova organizzazione delle schede */
+.summary-section { margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--line); }
+.summary-section h2 { margin-bottom: 10px; }
+.period-filter { margin: 12px 0 18px; }
+#panel-storico .period-filter, #panel-grafici .period-filter { margin-top: 0; }
+.charts-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.chart-card canvas { max-width: 100%; }
+@media (max-width: 700px) { .charts-grid { grid-template-columns: 1fr; } }
