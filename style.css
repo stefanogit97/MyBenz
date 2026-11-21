@@ -449,3 +449,10 @@ td {
     padding: 0 12px;
   }
 }
+.app-logo {
+  width: 90px;
+  height: 90px;
+  object-fit: contain;
+  display: block;
+  margin: 0 auto 10px;
+}
