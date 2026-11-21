@@ -206,6 +206,7 @@ historyList.addEventListener("click", (event) => {
 
   renderHistory();
   renderSummary();
+  renderCharts();
 });
 
 // ==========================================
@@ -628,7 +629,9 @@ function activateTab(tab) {
 
   if (tab === registerTab) registerPanel.hidden = false;
   if (tab === storicoTab) storicoPanel.hidden = false;
-  if (tab === chartsTab) chartsPanel.hidden = false;
+  if (tab === chartsTab) {
+  chartsPanel.hidden = false;
+  renderCharts();
 }
 
 registerTab.addEventListener("click", () => activateTab(registerTab));
@@ -725,6 +728,7 @@ entryForm.addEventListener("submit", (event) => {
 
   renderHistory();
   renderSummary();
+  renderCharts();
 
   entryForm.reset();
   updateRecordFields();
@@ -750,6 +754,7 @@ records = loadRecords();
 
 renderHistory();
 renderSummary();
+renderCharts();
 
 if ("serviceWorker" in navigator) {
   navigator.serviceWorker.register("./service-worker.js")
