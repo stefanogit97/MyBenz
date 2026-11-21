@@ -284,7 +284,14 @@ applyTheme(
 activateTab(registerTab);
 
 records = loadRecords();
+
+saveRecords();
+
 renderHistory();
+renderSummary();
+
+entryForm.reset();
+
 console.log(records);
 
 if ("serviceWorker" in navigator) {
@@ -372,6 +379,7 @@ entryForm.addEventListener(
     saveRecords();
 
 renderHistory();
+renderSummary();
 
 entryForm.reset();
 
