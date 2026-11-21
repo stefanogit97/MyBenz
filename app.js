@@ -13,6 +13,28 @@ const chartsPanel = document.querySelector("#panel-grafici");
 const themeToggle = document.querySelector("#theme-toggle");
 const themeToggleIcon = document.querySelector("#theme-toggle-icon");
 const themeToggleLabel = document.querySelector("#theme-toggle-label");
+const recordType =
+  document.querySelector("#record-type");
+
+const fuelFields =
+  document.querySelector("#fuel-fields");
+
+const expenseFields =
+  document.querySelector("#expense-fields");
+
+recordType.addEventListener(
+  "change",
+  () => {
+
+    const isFuel =
+      recordType.value === "fuel";
+
+    fuelFields.hidden = !isFuel;
+
+    expenseFields.hidden = isFuel;
+
+  }
+);
 
 function applyTheme(theme) {
   const isDark = theme === "dark";
