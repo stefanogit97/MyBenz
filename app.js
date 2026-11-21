@@ -109,10 +109,13 @@ function saveRecords() {
 // UTILITÀ
 // ==========================================
 
+
 function formatEuro(value) {
-  return Number(value || 0).toLocaleString("it-IT", {
-    style: "currency",
-    currency: "EUR"
+  const amount = Number(value) || 0;
+
+  return "€ " + amount.toLocaleString("it-IT", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
   });
 }
 
