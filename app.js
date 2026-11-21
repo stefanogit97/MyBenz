@@ -304,6 +304,8 @@ function renderSummary() {
   totalLitersElement.textContent = totalLiters.toFixed(1);
   fuelCostElement.textContent = formatEuro(fuelCost);
   expenseCostElement.textContent = formatEuro(expenseCost);
+  $("#total-expenses").textContent =
+  formatEuro(fuelCost + expenseCost);
   totalKmElement.textContent = totalKm.toLocaleString("it-IT");
 
   avgConsumptionElement.textContent =
