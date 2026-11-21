@@ -1,3 +1,18 @@
+const totalLitersElement =
+  document.querySelector("#total-liters");
+
+const fuelCostElement =
+  document.querySelector("#fuel-cost");
+
+const expenseCostElement =
+  document.querySelector("#expense-cost");
+
+const totalKmElement =
+  document.querySelector("#total-km");
+
+const avgConsumptionElement =
+  document.querySelector("#avg-consumption");
+
 "use strict";
 const STORAGE_KEY = "mybenz.records.v1";
 function loadRecords() {
@@ -289,8 +304,15 @@ entryForm.addEventListener(
 
     saveRecords();
 
-    console.log(records);
+renderHistory();
 
-    alert("Movimento salvato");
+entryForm.reset();
+
+fuelFields.hidden = false;
+expenseFields.hidden = true;
+
+console.log(records);
+
+alert("Movimento salvato");
   }
 );
