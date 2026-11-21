@@ -312,11 +312,24 @@ function renderSummary() {
 // TIPO MOVIMENTO
 // ==========================================
 
+
 function updateRecordFields() {
   const isFuel = recordType.value === "fuel";
 
   fuelFields.hidden = !isFuel;
   expenseFields.hidden = isFuel;
+
+  // Disabilita i campi nascosti:
+  // evita che i campi obbligatori blocchino il modulo.
+  fuelFields.querySelectorAll("input, select, textarea")
+    .forEach(field => {
+      field.disabled = !isFuel;
+    });
+
+  expenseFields.querySelectorAll("input, select, textarea")
+    .forEach(field => {
+      field.disabled = isFuel;
+    });
 }
 
 recordType.addEventListener("change", updateRecordFields);
