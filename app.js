@@ -312,6 +312,251 @@ function renderSummary() {
 }
 
 // ==========================================
+// GRAFICI
+// ==========================================
+
+function drawChart(canvas, drawFunction) {
+  if (!canvas) return;
+
+  const width = canvas.clientWidth;
+  const height = 240;
+  const ratio = window.devicePixelRatio || 1;
+
+  canvas.width = width * ratio;
+  canvas.height = height * ratio;
+
+  const ctx = canvas.getContext("2d");
+  ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+
+  ctx.clearRect(0, 0, width, height);
+
+  drawFunction(ctx, width, height);
+}
+
+function renderCharts() {
+  const consumptionCanvas = $("#consumption-chart");
+  const monthlyCanvas = $("#monthly-chart");
+  const costCanvas = $("#cost-chart");
+
+  const styles = getComputedStyle(document.documentElement);
+  const blue = "#1677ff";
+  const orange = "#ff8a24";
+  const textColor = styles.color || "#222222";
+  const mutedColor = "#888888";
+
+  // 1. CONSUMO MEDIO PIENO-PIENO
+
+  const fuelRecords = records
+    .filter(record => record.type === "fuel")
+    .sort((a, b) => String(a.date).localeCompare(String(b.date)));
+
+  const consumptionPoints = [];
+  let lastFull = null;
+  let litersSinceFull = 0;
+  let segmentHasUnknown = false;
+
+  for (const record of fuelRecords) {
+    if (!record.fillType) {
+      if (lastFull) segmentHasUnknown = true;
+      continue;
+    }
+
+    if (record.fillType === "full") {
+      if (lastFull && !segmentHasUnknown) {
+        const km = Number(record.odometer) - Number(lastFull.odometer);
+
+        if (km > 0 && litersSinceFull > 0) {
+          consumptionPoints.push({
+            date: record.date,
+            value: km / litersSinceFull
+          });
+        }
+      }
+
+      lastFull = record;
+      litersSinceFull = 0;
+      segmentHasUnknown = false;
+
+    } else if (record.fillType === "partial" && lastFull) {
+      litersSinceFull += Number(record.liters) || 0;
+    }
+  }
+
+  drawChart(consumptionCanvas, (ctx, width, height) => {
+    if (!consumptionPoints.length) {
+      ctx.fillStyle = mutedColor;
+      ctx.textAlign = "center";
+      ctx.fillText("Servono almeno due pieni completi", width / 2, height / 2);
+      return;
+    }
+
+    const values = consumptionPoints.map(point => point.value);
+    const max = Math.max(...values) * 1.15;
+    const min = Math.min(0, Math.min(...values) * 0.85);
+    const left = 42;
+    const right = 12;
+    const top = 20;
+    const bottom = 35;
+
+    ctx.strokeStyle = "#dddddd";
+    ctx.beginPath();
+    ctx.moveTo(left, top);
+    ctx.lineTo(left, height - bottom);
+    ctx.lineTo(width - right, height - bottom);
+    ctx.stroke();
+
+    ctx.strokeStyle = blue;
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+
+    values.forEach((value, index) => {
+      const x = left + index * (width - left - right) /
+        Math.max(1, values.length - 1);
+      const y = height - bottom -
+        ((value - min) / (max - min || 1)) * (height - top - bottom);
+
+      if (index === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    });
+
+    ctx.stroke();
+
+    values.forEach((value, index) => {
+      const x = left + index * (width - left - right) /
+        Math.max(1, values.length - 1);
+      const y = height - bottom -
+        ((value - min) / (max - min || 1)) * (height - top - bottom);
+
+      ctx.fillStyle = orange;
+      ctx.beginPath();
+      ctx.arc(x, y, 4, 0, Math.PI * 2);
+      ctx.fill();
+    });
+
+    ctx.fillStyle = textColor;
+    ctx.textAlign = "left";
+    ctx.fillText(`${values[values.length - 1].toFixed(1)} km/l`, left, 13);
+  });
+
+  // 2. SPESE MENSILI
+
+  const months = {};
+
+  records.forEach(record => {
+    const month = String(record.date || "").slice(0, 7);
+    if (!/^\d{4}-\d{2}$/.test(month)) return;
+
+    if (!months[month]) {
+      months[month] = { fuel: 0, expense: 0 };
+    }
+
+    if (record.type === "fuel") {
+      months[month].fuel += Number(record.totalCost) || 0;
+    } else if (record.type === "expense") {
+      months[month].expense += Number(record.totalCost) || 0;
+    }
+  });
+
+  const monthEntries = Object.entries(months).sort(
+    (a, b) => a[0].localeCompare(b[0])
+  ).slice(-6);
+
+  drawChart(monthlyCanvas, (ctx, width, height) => {
+    if (!monthEntries.length) {
+      ctx.fillStyle = mutedColor;
+      ctx.textAlign = "center";
+      ctx.fillText("Nessuna spesa registrata", width / 2, height / 2);
+      return;
+    }
+
+    const max = Math.max(
+      1,
+      ...monthEntries.map(([, values]) => values.fuel + values.expense)
+    );
+
+    const chartHeight = height - 55;
+    const slot = (width - 30) / monthEntries.length;
+    const barWidth = Math.min(34, slot * 0.65);
+
+    monthEntries.forEach(([month, values], index) => {
+      const x = 15 + index * slot + (slot - barWidth) / 2;
+      const fuelHeight = values.fuel / max * chartHeight;
+      const expenseHeight = values.expense / max * chartHeight;
+
+      ctx.fillStyle = blue;
+      ctx.fillRect(x, height - 35 - fuelHeight, barWidth, fuelHeight);
+
+      ctx.fillStyle = orange;
+      ctx.fillRect(
+        x,
+        height - 35 - fuelHeight - expenseHeight,
+        barWidth,
+        expenseHeight
+      );
+
+      ctx.fillStyle = textColor;
+      ctx.font = "11px sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText(month.slice(5), x + barWidth / 2, height - 15);
+    });
+  });
+
+  // 3. DISTRIBUZIONE DEI COSTI
+
+  const fuelTotal = records
+    .filter(record => record.type === "fuel")
+    .reduce((sum, record) => sum + (Number(record.totalCost) || 0), 0);
+
+  const expenseTotal = records
+    .filter(record => record.type === "expense")
+    .reduce((sum, record) => sum + (Number(record.totalCost) || 0), 0);
+
+  drawChart(costCanvas, (ctx, width, height) => {
+    const total = fuelTotal + expenseTotal;
+
+    if (total <= 0) {
+      ctx.fillStyle = mutedColor;
+      ctx.textAlign = "center";
+      ctx.fillText("Nessun costo registrato", width / 2, height / 2);
+      return;
+    }
+
+    const centerX = width / 2;
+    const centerY = 105;
+    const radius = 75;
+    let startAngle = -Math.PI / 2;
+
+    [
+      { value: fuelTotal, color: blue },
+      { value: expenseTotal, color: orange }
+    ].forEach(item => {
+      const angle = item.value / total * Math.PI * 2;
+
+      ctx.beginPath();
+      ctx.moveTo(centerX, centerY);
+      ctx.arc(centerX, centerY, radius, startAngle, startAngle + angle);
+      ctx.closePath();
+      ctx.fillStyle = item.color;
+      ctx.fill();
+
+      startAngle += angle;
+    });
+
+    ctx.fillStyle = textColor;
+    ctx.textAlign = "center";
+    ctx.font = "bold 15px sans-serif";
+    ctx.fillText(formatEuro(total), centerX, centerY + 5);
+
+    ctx.font = "12px sans-serif";
+    ctx.fillStyle = blue;
+    ctx.fillText(`● Carburante: ${formatEuro(fuelTotal)}`, centerX, 205);
+
+    ctx.fillStyle = orange;
+    ctx.fillText(`● Altre spese: ${formatEuro(expenseTotal)}`, centerX, 225);
+  });
+}
+
+// ==========================================
 // TIPO MOVIMENTO
 // ==========================================
 
