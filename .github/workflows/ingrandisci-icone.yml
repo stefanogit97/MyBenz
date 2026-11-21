@@ -1,0 +1,71 @@
+
+name: Ingrandisci icone MyPit
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  icons:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Scarica repository
+        uses: actions/checkout@v4
+
+      - name: Prepara Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Installa Pillow
+        run: pip install Pillow
+
+      - name: Ingrandisci le icone del 140%
+        run: |
+          python - <<'PY'
+          from PIL import Image
+
+          original = Image.open("icon-512.png").convert("RGBA")
+
+          width, height = original.size
+          factor = 1.40
+
+          enlarged = original.resize(
+              (round(width * factor), round(height * factor)),
+              Image.Resampling.LANCZOS
+          )
+
+          left = (enlarged.width - width) // 2
+          top = (enlarged.height - height) // 2
+
+          enlarged = enlarged.crop((
+              left,
+              top,
+              left + width,
+              top + height
+          ))
+
+          enlarged.save("icon-512.png", optimize=True)
+
+          icon192 = enlarged.resize(
+              (192, 192),
+              Image.Resampling.LANCZOS
+          )
+
+          icon192.save("icon-192.png", optimize=True)
+
+          print("Icone MyPit ingrandite correttamente del 140%.")
+          PY
+
+      - name: Salva le nuove icone su GitHub
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add icon-192.png icon-512.png
+          git diff --cached --quiet || (
+            git commit -m "Ingrandimento icone MyPit 140%" &&
+            git push
+          )
