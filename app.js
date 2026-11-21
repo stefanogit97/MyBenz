@@ -633,6 +633,7 @@ function activateTab(tab) {
   chartsPanel.hidden = false;
   renderCharts();
 }
+}
 
 registerTab.addEventListener("click", () => activateTab(registerTab));
 storicoTab.addEventListener("click", () => activateTab(storicoTab));
