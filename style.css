@@ -295,7 +295,15 @@ h1 {
 
   box-shadow: var(--shadow);
 }
+.summary-card:first-child {
+  background: var(--brand);
+  color: white;
+}
 
+.summary-card:first-child .summary-label,
+.summary-card:first-child strong {
+  color: white;
+}
 .summary-label {
   display: block;
 
