@@ -63,6 +63,32 @@
     </section>
 
     
+<div class="period-filter">
+  <label for="filter-period">Periodo del riepilogo</label>
+
+  <select id="filter-period">
+    <option value="all">Da sempre</option>
+    <option value="month">Per mese</option>
+    <option value="year">Per anno</option>
+  </select>
+
+  <input
+    type="month"
+    id="filter-month"
+    hidden
+  >
+
+  <input
+    type="number"
+    id="filter-year"
+    min="2000"
+    max="2100"
+    placeholder="Anno"
+    hidden
+  >
+</div>
+
+    
 <section class="summary-grid">
 
   <div class="summary-card">
