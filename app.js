@@ -11,6 +11,14 @@ const THEME_STORAGE_KEY = "mypit.theme.v1";
 let records = [];
 let storageHealthy = true;
 
+
+
+// ==========================================
+// ELEMENTI HTML
+// ==========================================
+
+const $ = (selector) => document.querySelector(selector);
+
 // ==========================================
 // FILTRO PERIODO
 // ==========================================
@@ -56,12 +64,6 @@ filterPeriod.addEventListener("change", updatePeriodFilter);
 filterMonth.addEventListener("change", updatePeriodFilter);
 filterYear.addEventListener("change", updatePeriodFilter);
 
-
-// ==========================================
-// ELEMENTI HTML
-// ==========================================
-
-const $ = (selector) => document.querySelector(selector);
 
 const totalLitersElement = $("#total-liters");
 const fuelCostElement = $("#fuel-cost");
@@ -269,9 +271,7 @@ function renderSummary() {
   const expenseRecords = periodRecords.filter(
     record => record.type === "expense"
   );
-    record => record.type === "fuel"
-  );
-
+    
   const totalLiters = fuelRecords.reduce(
     (sum, record) => sum + (Number(record.liters) || 0),
     0
