@@ -5,8 +5,8 @@
 // MY BENZ - CONFIGURAZIONE
 // ==========================================
 
-const STORAGE_KEY = "mybenz.records.v1";
-const THEME_STORAGE_KEY = "mybenz.theme.v1";
+const STORAGE_KEY = "mypit.records.v1";
+const THEME_STORAGE_KEY = "mypit.theme.v1";
 
 let records = [];
 let storageHealthy = true;
