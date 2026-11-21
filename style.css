@@ -519,3 +519,83 @@ td {
   border-radius: 10px;
   font: inherit;
 }
+
+/* ==========================================
+   MY PIT - MIGLIORAMENTI INTERFACCIA
+========================================== */
+
+/* Sei schede riepilogo */
+.summary-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+@media (max-width: 780px) {
+  .summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* Tabella storico scorrevole */
+.table-wrap {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.table-wrap table {
+  min-width: 650px;
+  white-space: nowrap;
+}
+
+/* Filtro periodo */
+.period-filter {
+  background: var(--surface);
+  border-color: var(--line);
+  color: var(--ink);
+}
+
+.period-filter select,
+.period-filter input {
+  background: var(--surface);
+  color: var(--ink);
+  border-color: var(--line);
+}
+
+/* Schede grafici */
+.chart-card {
+  background: var(--surface);
+  border-color: var(--line);
+  color: var(--ink);
+}
+
+/* Campi numerici */
+.field input::placeholder {
+  color: #888;
+  opacity: 1;
+}
+
+:root[data-theme="dark"] .field input::placeholder {
+  color: #aeb8c2;
+}
+
+/* Pulsanti esportazione */
+.export-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 0 0 18px;
+}
+
+.export-actions button {
+  min-height: 40px;
+  padding: 8px 14px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--brand);
+  color: white;
+  font-weight: 700;
+}
+
+.export-actions button:hover {
+  background: var(--brand-dark);
+}
