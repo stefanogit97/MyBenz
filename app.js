@@ -913,3 +913,29 @@ if ("serviceWorker" in navigator) {
   navigator.serviceWorker.register("./service-worker.js")
     .catch(error => console.error("Service Worker:", error));
 }
+
+if ("serviceWorker" in navigator) {
+  let refreshing = false;
+
+  navigator.serviceWorker.register("./service-worker.js")
+    .then(registration => {
+      registration.update();
+
+      // Controlla gli aggiornamenti quando si riapre l'app
+      document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === "visible") {
+          registration.update();
+        }
+      });
+
+      navigator.serviceWorker.addEventListener("controllerchange", () => {
+        if (!refreshing) {
+          refreshing = true;
+          window.location.reload();
+        }
+      });
+    })
+    .catch(error => {
+      console.error("Errore Service Worker:", error);
+    });
+}
