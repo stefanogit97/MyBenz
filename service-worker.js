@@ -1,5 +1,5 @@
 
-const CACHE_NAME = "mypit-v4";
+const CACHE_NAME = "mypit-v5";
 
 const APP_FILES = [
   "./",
@@ -11,7 +11,6 @@ const APP_FILES = [
   "./icon-512.png"
 ];
 
-// INSTALLAZIONE
 self.addEventListener("install", event => {
   event.waitUntil(
     caches.open(CACHE_NAME)
@@ -20,7 +19,6 @@ self.addEventListener("install", event => {
   );
 });
 
-// ATTIVAZIONE
 self.addEventListener("activate", event => {
   event.waitUntil(
     caches.keys()
@@ -38,7 +36,6 @@ self.addEventListener("activate", event => {
   );
 });
 
-// RICHIESTE DEI FILE
 self.addEventListener("fetch", event => {
   const request = event.request;
 
@@ -48,7 +45,6 @@ self.addEventListener("fetch", event => {
 
   if (url.origin !== self.location.origin) return;
 
-  // Pagine HTML: prima rete, poi cache
   if (request.mode === "navigate") {
     event.respondWith(
       fetch(request)
@@ -60,16 +56,14 @@ self.addEventListener("fetch", event => {
           }
           return response;
         })
-        .catch(() =>
-          caches.match(request).then(cached =>
-            cached || caches.match("./index.html")
-          )
-        )
+        .catch(async () => {
+          return await caches.match(request) ||
+                 await caches.match("./index.html");
+        })
     );
     return;
   }
 
-  // Altri file: prima rete, poi cache
   event.respondWith(
     fetch(request)
       .then(response => {
