@@ -203,9 +203,7 @@ function renderHistory() {
 
     if (record.type === "fuel") {
       detailCell.textContent =
-        `${record.fuelType || "Carburante"} · ${record.liters || 0} L` +
-        (record.fillType === "full" ? " · Completo" :
-          record.fillType === "partial" ? " · Parziale" : "");
+  `${record.fuelType || "Carburante"} · ${record.liters || 0} L`;
     } else {
       detailCell.textContent = record.category || "Spesa";
     }
@@ -352,15 +350,17 @@ function drawChart(canvas, drawFunction) {
   if (!canvas) return;
 
   const width = canvas.clientWidth;
-  const height = 240;
+  if (width <= 0) return;
+
+  const height = 280;
   const ratio = window.devicePixelRatio || 1;
 
   canvas.width = width * ratio;
   canvas.height = height * ratio;
+  canvas.style.height = `${height}px`;
 
   const ctx = canvas.getContext("2d");
   ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
-
   ctx.clearRect(0, 0, width, height);
 
   drawFunction(ctx, width, height);
@@ -370,84 +370,140 @@ function renderCharts() {
   const consumptionCanvas = $("#consumption-chart");
   const monthlyCanvas = $("#monthly-chart");
   const costCanvas = $("#cost-chart");
+
   const periodRecords = getFilteredRecords();
+  const allFuel = records
+    .filter(record => record.type === "fuel")
+    .sort((a, b) =>
+      String(a.date || "").localeCompare(String(b.date || ""))
+    );
+
+  const selectedFuel = new Set(
+    periodRecords.filter(record => record.type === "fuel")
+  );
 
   const styles = getComputedStyle(document.documentElement);
+  const textColor = styles.getPropertyValue("--ink").trim() || "#222";
+  const mutedColor = styles.getPropertyValue("--muted").trim() || "#888";
+  const gridColor = styles.getPropertyValue("--line").trim() || "#ddd";
   const blue = "#1677ff";
   const orange = "#ff8a24";
-  const textColor = styles.color || "#222222";
-  const mutedColor = "#888888";
 
-  // 1. CONSUMO MEDIO PIENO-PIENO
+  // Disegna assi, griglia e valori numerici
+  function drawAxes(ctx, width, height, config) {
+    const { max, steps, left, right, top, bottom, suffix } = config;
+    const chartWidth = width - left - right;
+    const chartHeight = height - top - bottom;
 
-  const fuelRecords = periodRecords
-    .filter(record => record.type === "fuel")
-    .sort((a, b) => String(a.date).localeCompare(String(b.date)));
+    ctx.font = "11px sans-serif";
+    ctx.textAlign = "right";
+    ctx.textBaseline = "middle";
 
-  const consumptionPoints = [];
-  let lastFull = null;
-  let litersSinceFull = 0;
-  let segmentHasUnknown = false;
+    for (let i = 0; i <= steps; i++) {
+      const value = max * i / steps;
+      const y = height - bottom - chartHeight * i / steps;
 
-  for (const record of fuelRecords) {
-    if (!record.fillType) {
-      if (lastFull) segmentHasUnknown = true;
-      continue;
-    }
+      ctx.strokeStyle = gridColor;
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(left, y);
+      ctx.lineTo(width - right, y);
+      ctx.stroke();
 
-    if (record.fillType === "full") {
-      if (lastFull && !segmentHasUnknown) {
-        const km = Number(record.odometer) - Number(lastFull.odometer);
-
-        if (km > 0 && litersSinceFull > 0) {
-          consumptionPoints.push({
-            date: record.date,
-            value: km / litersSinceFull
-          });
-        }
-      }
-
-      lastFull = record;
-      litersSinceFull = 0;
-      segmentHasUnknown = false;
-
-    } else if (record.fillType === "partial" && lastFull) {
-      litersSinceFull += Number(record.liters) || 0;
-    }
-  }
-
-  drawChart(consumptionCanvas, (ctx, width, height) => {
-    if (!consumptionPoints.length) {
       ctx.fillStyle = mutedColor;
-      ctx.textAlign = "center";
-      ctx.fillText("Servono almeno due pieni completi", width / 2, height / 2);
-      return;
+      ctx.fillText(
+        `${Number(value.toFixed(1)).toLocaleString("it-IT")}${suffix}`,
+        left - 7,
+        y
+      );
     }
 
-    const values = consumptionPoints.map(point => point.value);
-    const max = Math.max(...values) * 1.15;
-    const min = Math.min(0, Math.min(...values) * 0.85);
-    const left = 42;
-    const right = 12;
-    const top = 20;
-    const bottom = 35;
-
-    ctx.strokeStyle = "#dddddd";
+    ctx.strokeStyle = gridColor;
     ctx.beginPath();
     ctx.moveTo(left, top);
     ctx.lineTo(left, height - bottom);
     ctx.lineTo(width - right, height - bottom);
     ctx.stroke();
 
+    return { chartWidth, chartHeight };
+  }
+
+  // 1. CONSUMO A OGNI RIFORNIMENTO
+
+  const consumptionPoints = [];
+
+  for (let i = 1; i < allFuel.length; i++) {
+    const previous = allFuel[i - 1];
+    const current = allFuel[i];
+
+    if (!selectedFuel.has(current)) continue;
+
+    const km =
+      Number(current.odometer) - Number(previous.odometer);
+    const liters = Number(current.liters);
+
+    if (
+      Number.isFinite(km) &&
+      km > 0 &&
+      Number.isFinite(liters) &&
+      liters > 0
+    ) {
+      consumptionPoints.push({
+        date: current.date,
+        value: km / liters
+      });
+    }
+  }
+
+  drawChart(consumptionCanvas, (ctx, width, height) => {
+    const left = 52;
+    const right = 14;
+    const top = 25;
+    const bottom = 48;
+
+    if (!consumptionPoints.length) {
+      ctx.fillStyle = mutedColor;
+      ctx.textAlign = "center";
+      ctx.font = "13px sans-serif";
+      ctx.fillText(
+        "Servono almeno due rifornimenti con km e litri validi",
+        width / 2,
+        height / 2
+      );
+      return;
+    }
+
+    const values = consumptionPoints.map(point => point.value);
+    const max = Math.max(10, Math.ceil(Math.max(...values) / 5) * 5);
+
+    const { chartWidth, chartHeight } = drawAxes(ctx, width, height, {
+      max,
+      steps: 5,
+      left,
+      right,
+      top,
+      bottom,
+      suffix: ""
+    });
+
+    const xPosition = index =>
+      left + (
+        consumptionPoints.length === 1
+          ? chartWidth / 2
+          : index * chartWidth / (consumptionPoints.length - 1)
+      );
+
+    const yPosition = value =>
+      height - bottom - (value / max) * chartHeight;
+
+    // Linea
     ctx.strokeStyle = blue;
-    ctx.lineWidth = 3;
+    ctx.lineWidth = 2.5;
     ctx.beginPath();
 
     values.forEach((value, index) => {
-      const x = left + index * (width - left - right) /
-        Math.max(1, values.length - 1);
-      const y = height - bottom -
-        ((value - min) / (max - min || 1)) * (height - top - bottom);
+      const x = xPosition(index);
+      const y = yPosition(value);
 
       if (index === 0) ctx.moveTo(x, y);
       else ctx.lineTo(x, y);
@@ -455,21 +511,42 @@ function renderCharts() {
 
     ctx.stroke();
 
+    // Punti e valori
     values.forEach((value, index) => {
-      const x = left + index * (width - left - right) /
-        Math.max(1, values.length - 1);
-      const y = height - bottom -
-        ((value - min) / (max - min || 1)) * (height - top - bottom);
+      const x = xPosition(index);
+      const y = yPosition(value);
 
       ctx.fillStyle = orange;
       ctx.beginPath();
       ctx.arc(x, y, 4, 0, Math.PI * 2);
       ctx.fill();
+
+      ctx.fillStyle = textColor;
+      ctx.font = "10px sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText(value.toFixed(1), x, y - 12);
     });
+
+    // Date sull'asse X
+    ctx.fillStyle = mutedColor;
+    ctx.font = "10px sans-serif";
+    ctx.textAlign = "center";
+
+    const labelCount = Math.min(6, consumptionPoints.length);
+
+    for (let i = 0; i < labelCount; i++) {
+      const index = labelCount === 1
+        ? 0
+        : Math.round(i * (consumptionPoints.length - 1) / (labelCount - 1));
+
+      const date = consumptionPoints[index].date || "";
+      ctx.fillText(date.slice(5), xPosition(index), height - 25);
+    }
 
     ctx.fillStyle = textColor;
     ctx.textAlign = "left";
-    ctx.fillText(`${values[values.length - 1].toFixed(1)} km/l`, left, 13);
+    ctx.font = "11px sans-serif";
+    ctx.fillText("Consumo km/l", left, 13);
   });
 
   // 2. SPESE MENSILI
@@ -491,11 +568,16 @@ function renderCharts() {
     }
   });
 
-  const monthEntries = Object.entries(months).sort(
-    (a, b) => a[0].localeCompare(b[0])
-  ).slice(-6);
+  const monthEntries = Object.entries(months)
+    .sort((a, b) => a[0].localeCompare(b[0]))
+    .slice(-6);
 
   drawChart(monthlyCanvas, (ctx, width, height) => {
+    const left = 48;
+    const right = 12;
+    const top = 25;
+    const bottom = 48;
+
     if (!monthEntries.length) {
       ctx.fillStyle = mutedColor;
       ctx.textAlign = "center";
@@ -503,39 +585,60 @@ function renderCharts() {
       return;
     }
 
-    const max = Math.max(
-      1,
-      ...monthEntries.map(([, values]) => values.fuel + values.expense)
+    const totals = monthEntries.map(
+      ([, values]) => values.fuel + values.expense
     );
 
-    const chartHeight = height - 55;
-    const slot = (width - 30) / monthEntries.length;
-    const barWidth = Math.min(34, slot * 0.65);
+    const maxValue = Math.max(10, ...totals);
+    const step = Math.pow(10, Math.floor(Math.log10(maxValue)));
+    const max = Math.ceil(maxValue / step) * step;
+
+    const { chartWidth, chartHeight } = drawAxes(ctx, width, height, {
+      max,
+      steps: 4,
+      left,
+      right,
+      top,
+      bottom,
+      suffix: "€"
+    });
+
+    const slot = chartWidth / monthEntries.length;
+    const barWidth = Math.min(38, slot * 0.6);
 
     monthEntries.forEach(([month, values], index) => {
-      const x = 15 + index * slot + (slot - barWidth) / 2;
+      const x = left + index * slot + (slot - barWidth) / 2;
       const fuelHeight = values.fuel / max * chartHeight;
       const expenseHeight = values.expense / max * chartHeight;
+      const baseY = height - bottom;
 
       ctx.fillStyle = blue;
-      ctx.fillRect(x, height - 35 - fuelHeight, barWidth, fuelHeight);
+      ctx.fillRect(x, baseY - fuelHeight, barWidth, fuelHeight);
 
       ctx.fillStyle = orange;
       ctx.fillRect(
         x,
-        height - 35 - fuelHeight - expenseHeight,
+        baseY - fuelHeight - expenseHeight,
         barWidth,
         expenseHeight
       );
 
-      ctx.fillStyle = textColor;
-      ctx.font = "11px sans-serif";
+      ctx.fillStyle = mutedColor;
+      ctx.font = "10px sans-serif";
       ctx.textAlign = "center";
-      ctx.fillText(month.slice(5), x + barWidth / 2, height - 15);
+      ctx.fillText(month.slice(5), x + barWidth / 2, height - 25);
     });
+
+    // Legenda
+    ctx.font = "10px sans-serif";
+    ctx.textAlign = "left";
+    ctx.fillStyle = blue;
+    ctx.fillText("■ Carburante", left, 13);
+    ctx.fillStyle = orange;
+    ctx.fillText("■ Altre spese", left + 100, 13);
   });
 
-  // 3. DISTRIBUZIONE DEI COSTI
+  // 3. DISTRIBUZIONE COSTI
 
   const fuelTotal = periodRecords
     .filter(record => record.type === "fuel")
@@ -556,19 +659,25 @@ function renderCharts() {
     }
 
     const centerX = width / 2;
-    const centerY = 105;
-    const radius = 75;
+    const centerY = 112;
+    const radius = 72;
     let startAngle = -Math.PI / 2;
 
     [
-      { value: fuelTotal, color: blue },
-      { value: expenseTotal, color: orange }
+      { label: "Carburante", value: fuelTotal, color: blue },
+      { label: "Altre spese", value: expenseTotal, color: orange }
     ].forEach(item => {
       const angle = item.value / total * Math.PI * 2;
 
       ctx.beginPath();
       ctx.moveTo(centerX, centerY);
-      ctx.arc(centerX, centerY, radius, startAngle, startAngle + angle);
+      ctx.arc(
+        centerX,
+        centerY,
+        radius,
+        startAngle,
+        startAngle + angle
+      );
       ctx.closePath();
       ctx.fillStyle = item.color;
       ctx.fill();
@@ -582,14 +691,26 @@ function renderCharts() {
     ctx.fillText(formatEuro(total), centerX, centerY + 5);
 
     ctx.font = "12px sans-serif";
+    ctx.textAlign = "center";
+
+    const fuelPercent = (fuelTotal / total * 100).toFixed(1);
+    const expensePercent = (expenseTotal / total * 100).toFixed(1);
+
     ctx.fillStyle = blue;
-    ctx.fillText(`● Carburante: ${formatEuro(fuelTotal)}`, centerX, 205);
+    ctx.fillText(
+      `Carburante: ${formatEuro(fuelTotal)} (${fuelPercent}%)`,
+      centerX,
+      215
+    );
 
     ctx.fillStyle = orange;
-    ctx.fillText(`● Altre spese: ${formatEuro(expenseTotal)}`, centerX, 225);
+    ctx.fillText(
+      `Altre spese: ${formatEuro(expenseTotal)} (${expensePercent}%)`,
+      centerX,
+      235
+    );
   });
 }
-
 // ==========================================
 // TIPO MOVIMENTO
 // ==========================================
@@ -717,17 +838,11 @@ entryForm.addEventListener("submit", (event) => {
       return;
     }
 
-    if (!["full", "partial"].includes(fuelFillType.value)) {
-      alert("Seleziona il tipo di rifornimento.");
-      return;
-    }
-
     record = {
       id: makeId(),
       type: "fuel",
       date: fuelDate.value,
       odometer,
-      fillType: fuelFillType.value,
       fuelType: fuelType.value,
       liters,
       totalCost: cost,
