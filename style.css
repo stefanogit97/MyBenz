@@ -328,3 +328,51 @@ h1 {
   }
 
 }
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  --paper: #0f1720;
+  --surface: #18222e;
+
+  --ink: #eef5fc;
+  --muted: #b6c5d3;
+
+  --line: #304354;
+
+  --brand: #2fa3ff;
+  --brand-dark: #1478d1;
+  --brand-light: #213647;
+
+  --accent: #ff9a3c;
+  --accent-light: #4a2d10;
+
+  --success: #4fd48c;
+  --danger: #ff7e72;
+
+  --shadow: 0 12px 32px rgb(0 0 0 / 30%);
+}
+:root[data-theme="dark"] body {
+  background:
+    radial-gradient(
+      ellipse at 82% 0%,
+      rgb(47 163 255 / 15%),
+      transparent 34rem
+    ),
+    var(--paper);
+}
+:root[data-theme="dark"] .topbar {
+  border-bottom-color: rgb(255 255 255 / 8%);
+}
+:root[data-theme="dark"] .tabs {
+  border-color: #314252;
+  background: rgb(24 34 46 / 90%);
+}
+:root[data-theme="dark"] #panel-registro,
+:root[data-theme="dark"] #panel-storico,
+:root[data-theme="dark"] #panel-grafici,
+:root[data-theme="dark"] .summary-card {
+  border-color: #314252;
+}
+:root[data-theme="dark"] .theme-toggle {
+  background: #223040;
+}
