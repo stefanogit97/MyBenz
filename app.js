@@ -1,400 +1,52 @@
 "use strict";
-
-// ==========================================
-// MY PIT - CONFIGURAZIONE E ELEMENTI
-// ==========================================
-const STORAGE_KEY = "mypit.records.v1";
-const THEME_STORAGE_KEY = "mypit.theme.v1";
-let records = [];
-let storageHealthy = true;
-const $ = selector => document.querySelector(selector);
-
-const filterPeriod = $("#filter-period");
-const filterMonth = $("#filter-month");
-const filterYear = $("#filter-year");
-const totalLitersElement = $("#total-liters");
-const fuelCostElement = $("#fuel-cost");
-const expenseCostElement = $("#expense-cost");
-const totalKmElement = $("#total-km");
-const avgConsumptionElement = $("#avg-consumption");
-const entryForm = $("#entry-form");
-const recordType = $("#record-type");
-const fuelFields = $("#fuel-fields");
-const expenseFields = $("#expense-fields");
-const fuelDate = $("#fuel-date");
-const fuelOdometer = $("#fuel-odometer");
-const fuelType = $("#fuel-type");
-const fuelLiters = $("#fuel-liters");
-const fuelCostInput = $("#fuel-cost-input");
-const fuelStation = $("#fuel-station");
-const fuelNote = $("#fuel-note");
-const expenseDate = $("#expense-date");
-const expenseCategory = $("#expense-category");
-const expenseCostInput = $("#expense-cost-input");
-const expenseVendor = $("#expense-vendor");
-const expenseNote = $("#expense-note");
-const historyList = $("#history-list");
-const registerTab = $("#tab-registro");
-const storicoTab = $("#tab-storico");
-const chartsTab = $("#tab-grafici");
-const registerPanel = $("#panel-registro");
-const storicoPanel = $("#panel-storico");
-const chartsPanel = $("#panel-grafici");
-const themeToggle = $("#theme-toggle");
-const themeToggleIcon = $("#theme-toggle-icon");
-const themeToggleLabel = $("#theme-toggle-label");
-
-const today = new Date();
-filterMonth.value = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}`;
-filterYear.value = today.getFullYear();
-
-function parseNumber(value) {
-  if (typeof value === "number") return value;
-  const normalized = String(value ?? "").trim().replace(/\s/g, "").replace(",", ".");
-  return normalized === "" ? NaN : Number(normalized);
-}
-function formatEuro(value) {
-  return "€ " + (Number(value) || 0).toLocaleString("it-IT", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-}
-function makeId() {
-  return crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
-}
-function validDate(value) {
-  return /^\d{4}-\d{2}-\d{2}$/.test(value) && !Number.isNaN(Date.parse(value));
-}
-function loadRecords() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed)) throw new Error("Archivio non valido");
-    return parsed;
-  } catch (error) {
-    storageHealthy = false;
-    alert("Attenzione: non riesco a leggere l'archivio. I dati originali non verranno sovrascritti.");
-    console.error(error);
-    return [];
-  }
-}
-function saveRecords() {
-  if (!storageHealthy) {
-    alert("Salvataggio bloccato per proteggere i dati esistenti.");
-    return false;
-  }
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
-    return true;
-  } catch (error) {
-    alert("Errore durante il salvataggio. Controlla lo spazio disponibile.");
-    console.error(error);
-    return false;
-  }
-}
-
-function getFilteredRecords() {
-  const period = filterPeriod.value;
-  if (period === "month") return records.filter(r => String(r.date || "").slice(0, 7) === filterMonth.value);
-  if (period === "year") return records.filter(r => String(r.date || "").slice(0, 4) === String(filterYear.value));
-  return records;
-}
-function getPeriodLabel() {
-  if (filterPeriod.value === "month" && filterMonth.value) {
-    const [year, month] = filterMonth.value.split("-");
-    const date = new Date(Number(year), Number(month) - 1, 1);
-    return date.toLocaleDateString("it-IT", { month: "long", year: "numeric" });
-  }
-  if (filterPeriod.value === "year") return `Anno ${filterYear.value}`;
-  return "Tutto lo storico";
-}
-function updatePeriodFilter() {
-  filterMonth.hidden = filterPeriod.value !== "month";
-  filterYear.hidden = filterPeriod.value !== "year";
-  renderSummary();
-  renderHistory();
-  renderCharts();
-}
-filterPeriod.addEventListener("change", updatePeriodFilter);
-filterMonth.addEventListener("change", updatePeriodFilter);
-filterYear.addEventListener("change", updatePeriodFilter);
-
-// ==========================================
-// STORICO
-// ==========================================
-function renderHistory() {
-  historyList.replaceChildren();
-  const sorted = [...getFilteredRecords()].sort((a, b) => String(b.date || "").localeCompare(String(a.date || "")));
-  for (const record of sorted) {
-    const row = document.createElement("tr");
-    const dateCell = document.createElement("td"); dateCell.textContent = record.date || "—";
-    const typeCell = document.createElement("td"); typeCell.textContent = record.type === "fuel" ? "Rifornimento" : "Spesa";
-    const detailCell = document.createElement("td");
-    detailCell.textContent = record.type === "fuel" ? `${record.fuelType || "Carburante"} · ${Number(record.liters || 0).toLocaleString("it-IT")} L` : (record.category || "Spesa");
-    const costCell = document.createElement("td"); costCell.textContent = formatEuro(record.totalCost);
-    const actionCell = document.createElement("td");
-    const deleteButton = document.createElement("button"); deleteButton.type = "button"; deleteButton.className = "delete-button"; deleteButton.dataset.id = record.id; deleteButton.textContent = "Elimina";
-    actionCell.append(deleteButton); row.append(dateCell, typeCell, detailCell, costCell, actionCell); historyList.append(row);
-  }
-  if (!sorted.length) { const row = document.createElement("tr"); const cell = document.createElement("td"); cell.colSpan = 5; cell.textContent = "Nessun movimento nel periodo selezionato."; row.append(cell); historyList.append(row); }
-}
-
-historyList.addEventListener("click", event => {
-  const button = event.target.closest(".delete-button");
-  if (!button) return;
-  if (!confirm("Vuoi eliminare questo movimento?")) return;
-  const oldRecords = records;
-  records = records.filter(record => record.id !== button.dataset.id);
-  if (!saveRecords()) { records = oldRecords; return; }
-  renderHistory(); renderSummary(); renderCharts();
-});
-
-// ==========================================
-// RIEPILOGO E CONSUMI
-// Ogni rifornimento usa i litri inseriti in quel movimento.
-// ==========================================
-function getFuelIntervals() {
-  const allFuel = records.filter(r => r.type === "fuel")
-    .sort((a, b) => String(a.date || "").localeCompare(String(b.date || "")));
-  const selected = new Set(getFilteredRecords().filter(r => r.type === "fuel"));
-  const intervals = [];
-  for (let i = 1; i < allFuel.length; i++) {
-    const previous = allFuel[i - 1], current = allFuel[i];
-    if (!selected.has(current)) continue;
-    const km = parseNumber(current.odometer) - parseNumber(previous.odometer);
-    const liters = parseNumber(current.liters);
-    if (Number.isFinite(km) && km > 0 && Number.isFinite(liters) && liters > 0) {
-      intervals.push({ date: current.date, value: km / liters, km, liters });
-    }
-  }
-  return intervals;
-}
-function renderSummary() {
-  const periodRecords = getFilteredRecords();
-  const fuelRecords = periodRecords.filter(r => r.type === "fuel");
-  const expenseRecords = periodRecords.filter(r => r.type === "expense");
-  const totalLiters = fuelRecords.reduce((s, r) => s + (parseNumber(r.liters) || 0), 0);
-  const fuelCost = fuelRecords.reduce((s, r) => s + (parseNumber(r.totalCost) || 0), 0);
-  const expenseCost = expenseRecords.reduce((s, r) => s + (parseNumber(r.totalCost) || 0), 0);
-  const intervals = getFuelIntervals();
-  const totalKm = intervals.reduce((s, item) => s + item.km, 0);
-  const totalConsumptionKm = intervals.reduce((s, item) => s + item.km, 0);
-  const totalConsumptionLiters = intervals.reduce((s, item) => s + item.liters, 0);
-  const average = totalConsumptionLiters > 0 ? totalConsumptionKm / totalConsumptionLiters : null;
-
-  totalLitersElement.textContent = totalLiters.toLocaleString("it-IT", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
-  fuelCostElement.textContent = formatEuro(fuelCost);
-  expenseCostElement.textContent = formatEuro(expenseCost);
-  $("#total-expenses").textContent = formatEuro(fuelCost + expenseCost);
-  totalKmElement.textContent = totalKm.toLocaleString("it-IT", { maximumFractionDigits: 0 });
-  avgConsumptionElement.textContent = average === null ? "—" : `${average.toFixed(1)} km/l`;
-}
-
-// ==========================================
-// GRAFICI
-// ==========================================
-function drawChart(canvas, drawFunction) {
-  if (!canvas) return;
-  const width = canvas.clientWidth;
-  if (width <= 0) return;
-  const height = 280, ratio = window.devicePixelRatio || 1;
-  canvas.width = Math.round(width * ratio);
-  canvas.height = Math.round(height * ratio);
-  canvas.style.height = `${height}px`;
-  const ctx = canvas.getContext("2d");
-  ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
-  ctx.clearRect(0, 0, width, height);
-  drawFunction(ctx, width, height);
-}
-function niceStep(maxValue, targetTicks = 5) {
-  const rough = maxValue / targetTicks;
-  const magnitude = Math.pow(10, Math.floor(Math.log10(Math.max(rough, 1))));
-  const normalized = rough / magnitude;
-  const nice = normalized <= 1 ? 1 : normalized <= 2 ? 2 : normalized <= 5 ? 5 : 10;
-  return nice * magnitude;
-}
-function renderCharts() {
-  const periodRecords = getFilteredRecords();
-  const periodLabel = getPeriodLabel();
-  ["consumption-period", "trend-period", "monthly-period", "cost-period"].forEach(id => { const el = $("#" + id); if (el) el.textContent = periodLabel; });
-  const styles = getComputedStyle(document.documentElement);
-  const ink = styles.getPropertyValue("--ink").trim() || "#222";
-  const muted = styles.getPropertyValue("--muted").trim() || "#888";
-  const grid = styles.getPropertyValue("--line").trim() || "#ddd";
-  const blue = "#1677ff", orange = "#ff8a24", green = "#18a66a", purple = "#8b5cf6";
-  function canvasSetup(id, draw) {
-    const canvas = $("#" + id); if (!canvas) return;
-    const width = canvas.clientWidth; if (width <= 0) return;
-    const height = 280, ratio = window.devicePixelRatio || 1;
-    canvas.width = Math.round(width * ratio); canvas.height = Math.round(height * ratio); canvas.style.height = height + "px";
-    const ctx = canvas.getContext("2d"); ctx.setTransform(ratio, 0, 0, ratio, 0, 0); ctx.clearRect(0, 0, width, height);
-    draw(ctx, width, height);
-  }
-  function empty(ctx, w, h, msg) { ctx.fillStyle = muted; ctx.font = "13px sans-serif"; ctx.textAlign = "center"; ctx.fillText(msg, w/2, h/2); }
-  function axis(ctx,w,h,max,step,suffix="",left=48,bottom=62) {
-    const top=25,right=12,pw=w-left-right,ph=h-top-bottom; ctx.font="11px sans-serif";ctx.textAlign="right";ctx.textBaseline="middle";
-    for(let v=0;v<=max+step/2;v+=step){const y=h-bottom-(v/max)*ph;ctx.strokeStyle=grid;ctx.beginPath();ctx.moveTo(left,y);ctx.lineTo(w-right,y);ctx.stroke();ctx.fillStyle=muted;ctx.fillText(`${Number(v.toFixed(2)).toLocaleString("it-IT")}${suffix}`,left-6,y);}
-    ctx.strokeStyle=grid;ctx.beginPath();ctx.moveTo(left,top);ctx.lineTo(left,h-bottom);ctx.lineTo(w-right,h-bottom);ctx.stroke();return {left,top,right,bottom,pw,ph};
-  }
-  function stepFor(max, target=5) { const raw=Math.max(max/target,0.1); const mag=Math.pow(10,Math.floor(Math.log10(raw))); const n=raw/mag; return (n<=1?1:n<=2?2:n<=5?5:10)*mag; }
-  function bucketKey(date) { if(filterPeriod.value==="month") return String(date).slice(0,7); if(filterPeriod.value==="year") return String(date).slice(0,7); return String(date).slice(0,4); }
-  function bucketLabel(key) { if(filterPeriod.value==="month") return periodLabel; if(filterPeriod.value==="year") { const [y,m]=key.split("-"); return new Date(+y,+m-1,1).toLocaleDateString("it-IT",{month:"short"}); } return key; }
-  // Consumi aggregati per periodo: km totali / litri totali, non media semplice dei rifornimenti.
-  const allFuel=records.filter(r=>r.type==="fuel").sort((a,b)=>String(a.date).localeCompare(String(b.date)));
-  const selectedFuel=new Set(periodRecords.filter(r=>r.type==="fuel"));
-  const consumptionBuckets=new Map();
-  for(let i=1;i<allFuel.length;i++){
-    const prev=allFuel[i-1],cur=allFuel[i]; if(!selectedFuel.has(cur)) continue;
-    const km=parseNumber(cur.odometer)-parseNumber(prev.odometer), liters=parseNumber(cur.liters);
-    if(!(km>0&&liters>0)) continue;
-    const key=bucketKey(cur.date); if(!consumptionBuckets.has(key))consumptionBuckets.set(key,{km:0,liters:0});
-    const b=consumptionBuckets.get(key);b.km+=km;b.liters+=liters;
-  }
-  let consumptionData=[...consumptionBuckets.entries()].sort((a,b)=>a[0].localeCompare(b[0])).map(([key,v])=>({key,label:bucketLabel(key),value:v.km/v.liters,km:v.km,liters:v.liters}));
-  if(filterPeriod.value==="month" && consumptionData.length){const total=consumptionData.reduce((a,x)=>({km:a.km+x.km,liters:a.liters+x.liters}),{km:0,liters:0});consumptionData=[{key:filterMonth.value,label:periodLabel,value:total.km/total.liters,...total}];}
-  canvasSetup("consumption-chart",(ctx,w,h)=>{
-    if(!consumptionData.length){empty(ctx,w,h,"Servono almeno due rifornimenti validi");return;}
-    const val=consumptionData.length===1?consumptionData[0].value:consumptionData.reduce((a,x)=>a+x.km,0)/consumptionData.reduce((a,x)=>a+x.liters,0);
-    const max=Math.max(1,Math.ceil(val/2)*2),step=Math.max(1,Math.ceil(max/5));const a=axis(ctx,w,h,max,step," km/l",50,58);
-    const barW=Math.min(70,a.pw*.35),x=a.left+(a.pw-barW)/2,bh=val/max*a.ph,y=h-a.bottom-bh;ctx.fillStyle=blue;ctx.fillRect(x,y,barW,bh);
-    ctx.fillStyle=ink;ctx.font="bold 13px sans-serif";ctx.textAlign="center";ctx.fillText(val.toFixed(2)+" km/l",w/2,Math.max(15,y-10));ctx.fillStyle=muted;ctx.font="11px sans-serif";ctx.fillText(periodLabel,w/2,h-23);
-    ctx.font="bold 11px sans-serif";ctx.fillStyle=blue;ctx.fillText("■ Consumo medio",w/2,h-5);
-  });
-  // Andamento: una misura per mese (se anno selezionato), per anno (da sempre), o una sola per mese.
-  canvasSetup("trend-chart",(ctx,w,h)=>{
-    if(!consumptionData.length){empty(ctx,w,h,"Dati insufficienti per il periodo");return;}
-    const max=Math.max(1,...consumptionData.map(x=>x.value));const top=25,bottom=58,left=48,right=12,pw=w-left-right,ph=h-top-bottom,step=stepFor(max,5);
-    const cap=Math.ceil(max/step)*step;ctx.font="11px sans-serif";ctx.textAlign="right";ctx.textBaseline="middle";
-    for(let v=0;v<=cap+step/2;v+=step){const y=h-bottom-v/cap*ph;ctx.strokeStyle=grid;ctx.beginPath();ctx.moveTo(left,y);ctx.lineTo(w-right,y);ctx.stroke();ctx.fillStyle=muted;ctx.fillText(v.toFixed(1),left-6,y);}
-    const pts=consumptionData.map((d,i)=>({x:consumptionData.length===1?left+pw/2:left+i*pw/(consumptionData.length-1),y:h-bottom-d.value/cap*ph,d}));
-    ctx.strokeStyle=green;ctx.lineWidth=3;ctx.beginPath();pts.forEach((p,i)=>i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y));ctx.stroke();
-    pts.forEach(p=>{ctx.fillStyle=green;ctx.beginPath();ctx.arc(p.x,p.y,5,0,Math.PI*2);ctx.fill();ctx.fillStyle=ink;ctx.font="bold 10px sans-serif";ctx.textAlign="center";ctx.fillText(p.d.value.toFixed(1),p.x,p.y-12);ctx.fillStyle=muted;ctx.font="10px sans-serif";ctx.fillText(p.d.label,p.x,h-25);});
-    ctx.fillStyle=green;ctx.font="bold 11px sans-serif";ctx.textAlign="center";ctx.fillText("— Consumo medio (km/l)",w/2,h-5);
-  });
-  // Spese aggregate: mese = una barra; anno = barre mensili; da sempre = barre annuali.
-  const spendBuckets=new Map();
-  periodRecords.forEach(r=>{if(!validDate(r.date))return;const key=bucketKey(r.date);if(!spendBuckets.has(key))spendBuckets.set(key,{fuel:0,other:0,label:bucketLabel(key)});const b=spendBuckets.get(key);if(r.type==="fuel")b.fuel+=parseNumber(r.totalCost)||0;else b.other+=parseNumber(r.totalCost)||0;});
-  const spendData=[...spendBuckets.entries()].sort((a,b)=>a[0].localeCompare(b[0]));
-  canvasSetup("monthly-chart",(ctx,w,h)=>{
-    if(!spendData.length){empty(ctx,w,h,"Nessuna spesa nel periodo selezionato");return;}
-    const maxVal=Math.max(10,...spendData.map(([,v])=>v.fuel+v.other));const step=Math.max(10,Math.ceil(stepFor(maxVal,5)/10)*10),max=Math.ceil(maxVal/step)*step;const a=axis(ctx,w,h,max,step," €",55,70);const slot=a.pw/spendData.length,bw=Math.min(46,slot*.55);
-    spendData.forEach(([key,v],i)=>{const x=a.left+i*slot+(slot-bw)/2,base=h-a.bottom,fh=v.fuel/max*a.ph,oh=v.other/max*a.ph;ctx.fillStyle=blue;ctx.fillRect(x,base-fh,bw,fh);ctx.fillStyle=orange;ctx.fillRect(x,base-fh-oh,bw,oh);ctx.fillStyle=muted;ctx.font="10px sans-serif";ctx.textAlign="center";ctx.fillText(v.label,x+bw/2,h-48);ctx.fillStyle=ink;ctx.font="bold 10px sans-serif";ctx.fillText(formatEuro(v.fuel+v.other),x+bw/2,Math.max(14,base-fh-oh-8));});
-    ctx.font="bold 11px sans-serif";ctx.textAlign="center";ctx.fillStyle=blue;ctx.fillText("■ Carburante",w/2-58,h-12);ctx.fillStyle=orange;ctx.fillText("■ Altre spese",w/2+65,h-12);
-  });
-  // Distribuzione spese: carburante + categorie effettive delle altre spese.
-  const categories=new Map();
-  periodRecords.forEach(r=>{const amount=parseNumber(r.totalCost)||0;if(amount<=0)return;const name=r.type==="fuel"?"Carburante":(r.category||"Altre spese");categories.set(name,(categories.get(name)||0)+amount);});
-  const palette=[blue,orange,green,purple,"#d946ef","#0891b2","#ca8a04","#64748b"];
-  canvasSetup("cost-chart",(ctx,w,h)=>{
-    const items=[...categories.entries()].sort((a,b)=>b[1]-a[1]);const total=items.reduce((a,x)=>a+x[1],0);if(total<=0){empty(ctx,w,h,"Nessun costo nel periodo selezionato");return;}
-    const cx=w/2,cy=105,r=68;let angle=-Math.PI/2;items.forEach(([name,value],i)=>{const slice=value/total*Math.PI*2;ctx.beginPath();ctx.moveTo(cx,cy);ctx.arc(cx,cy,r,angle,angle+slice);ctx.closePath();ctx.fillStyle=palette[i%palette.length];ctx.fill();angle+=slice;});
-    ctx.fillStyle=ink;ctx.font="bold 14px sans-serif";ctx.textAlign="center";ctx.fillText(formatEuro(total),cx,cy+5);
-    let y=195;items.slice(0,5).forEach(([name,value],i)=>{ctx.fillStyle=palette[i%palette.length];ctx.fillRect(18,y-9,10,10);ctx.fillStyle=ink;ctx.font="bold 10px sans-serif";ctx.textAlign="left";const pct=(value/total*100).toFixed(1);ctx.fillText(`${name}: ${formatEuro(value)} (${pct}%)`,34,y);y+=17;});
-    if(items.length>5){ctx.fillStyle=muted;ctx.font="10px sans-serif";ctx.fillText(`+ ${items.length-5} altre categorie`,34,y);}
-  });
-}
-
-// ==========================================
-// MODULO, TEMA E NAVIGAZIONE
-// ==========================================
-function updateRecordFields() {
-  const isFuel = recordType.value === "fuel";
-  fuelFields.hidden = !isFuel;
-  expenseFields.hidden = isFuel;
-  fuelFields.querySelectorAll("input, select, textarea").forEach(field => { field.disabled = !isFuel; });
-  expenseFields.querySelectorAll("input, select, textarea").forEach(field => { field.disabled = isFuel; });
-}
-recordType.addEventListener("change", updateRecordFields);
-
-function applyTheme(theme) {
-  const dark = theme === "dark";
-  document.documentElement.dataset.theme = dark ? "dark" : "light";
-  themeToggleIcon.textContent = dark ? "☀" : "☾";
-  themeToggleLabel.textContent = dark ? "Chiaro" : "Scuro";
-  try { localStorage.setItem(THEME_STORAGE_KEY, theme); }
-  catch (error) { console.warn("Impossibile salvare il tema", error); }
-}
-themeToggle.addEventListener("click", () => {
-  applyTheme(document.documentElement.dataset.theme === "dark" ? "light" : "dark");
-});
-
-function activateTab(tab) {
-  const filterControl = $("#period-filter-control");
-  const targetSlot = tab === registerTab ? $("#period-filter-slot-registro") : tab === storicoTab ? $("#period-filter-slot-storico") : $("#period-filter-slot-grafici");
-  if (filterControl && targetSlot) targetSlot.append(filterControl);
-  registerPanel.hidden = true; storicoPanel.hidden = true; chartsPanel.hidden = true;
-  registerTab.classList.remove("is-active"); storicoTab.classList.remove("is-active"); chartsTab.classList.remove("is-active");
-  tab.classList.add("is-active");
-  if (tab === registerTab) registerPanel.hidden = false;
-  if (tab === storicoTab) { storicoPanel.hidden = false; renderHistory(); }
-  if (tab === chartsTab) { chartsPanel.hidden = false; renderCharts(); }
-}
-registerTab.addEventListener("click", () => activateTab(registerTab));
-storicoTab.addEventListener("click", () => activateTab(storicoTab));
-chartsTab.addEventListener("click", () => activateTab(chartsTab));
-
-// ==========================================
-// SALVATAGGIO MOVIMENTI
-// ==========================================
-entryForm.addEventListener("submit", event => {
-  event.preventDefault();
-  if (!storageHealthy) { alert("Archivio non disponibile: impossibile salvare."); return; }
-  let record;
-  if (recordType.value === "fuel") {
-    const liters = parseNumber(fuelLiters.value);
-    const cost = parseNumber(fuelCostInput.value);
-    const odometer = parseNumber(fuelOdometer.value);
-    if (!validDate(fuelDate.value)) { alert("Inserisci una data valida."); return; }
-    if (!Number.isFinite(odometer) || odometer < 0) { alert("Inserisci un chilometraggio valido."); return; }
-    if (!Number.isFinite(liters) || liters <= 0) { alert("Inserisci una quantità di litri valida."); return; }
-    if (!Number.isFinite(cost) || cost <= 0) { alert("Inserisci un costo valido."); return; }
-    record = {
-      id: makeId(), type: "fuel", date: fuelDate.value, odometer,
-      fuelType: fuelType.value, liters, totalCost: cost,
-      station: fuelStation.value.trim(), note: fuelNote.value.trim()
-    };
-  } else {
-    const cost = parseNumber(expenseCostInput.value);
-    if (!validDate(expenseDate.value)) { alert("Inserisci una data valida."); return; }
-    if (!Number.isFinite(cost) || cost <= 0) { alert("Inserisci un costo valido."); return; }
-    record = {
-      id: makeId(), type: "expense", date: expenseDate.value,
-      category: expenseCategory.value, totalCost: cost,
-      vendor: expenseVendor.value.trim(), note: expenseNote.value.trim()
-    };
-  }
-  records.push(record);
-  if (!saveRecords()) { records.pop(); return; }
-  renderHistory(); renderSummary(); renderCharts();
-  entryForm.reset(); updateRecordFields();
-  alert("Movimento salvato correttamente!");
-});
-
-// ==========================================
-// AVVIO APP
-// ==========================================
-try {
-  const savedTheme = localStorage.getItem(THEME_STORAGE_KEY);
-  applyTheme(savedTheme === "dark" ? "dark" : "light");
-} catch (error) { applyTheme("light"); }
-
-records = loadRecords();
-activateTab(registerTab);
-updateRecordFields();
-renderHistory();
-renderSummary();
-renderCharts();
-window.addEventListener("resize", () => { if (!chartsPanel.hidden) renderCharts(); });
-
-if ("serviceWorker" in navigator) {
-  let refreshing = false;
-  navigator.serviceWorker.register("./service-worker.js")
-    .then(registration => {
-      registration.update();
-      document.addEventListener("visibilitychange", () => {
-        if (document.visibilityState === "visible") registration.update();
-      });
-      navigator.serviceWorker.addEventListener("controllerchange", () => {
-        if (!refreshing) { refreshing = true; window.location.reload(); }
-      });
-    })
-    .catch(error => console.error("Errore aggiornamento MyPit:", error));
-}
+const STORAGE_KEY="mypit.records.v1", THEME_STORAGE_KEY="mypit.theme.v1";
+let records=[], storageHealthy=true;
+const $=s=>document.querySelector(s);
+const filterPeriod=$("#filter-period"),filterMonth=$("#filter-month"),filterYear=$("#filter-year");
+const today=new Date(); filterMonth.value=`${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,"0")}`;filterYear.value=today.getFullYear();
+const parseNumber=v=>{if(typeof v==="number")return v;const n=String(v??"").trim().replace(/\s/g,"").replace(",",".");return n===""?NaN:Number(n)};
+const euro=v=>"€ "+(Number(v)||0).toLocaleString("it-IT",{minimumFractionDigits:2,maximumFractionDigits:2});
+const id=()=>crypto.randomUUID?crypto.randomUUID():`${Date.now()}-${Math.random().toString(16).slice(2)}`;
+const validDate=v=>/^\d{4}-\d{2}-\d{2}$/.test(v)&&!Number.isNaN(Date.parse(v));
+function load(){try{const v=JSON.parse(localStorage.getItem(STORAGE_KEY)||"[]");if(!Array.isArray(v))throw Error("Archivio non valido");return v}catch(e){storageHealthy=false;alert("Non riesco a leggere l'archivio: i dati originali non verranno sovrascritti.");return[]}}
+function save(){if(!storageHealthy){alert("Salvataggio bloccato per proteggere i dati.");return false}try{localStorage.setItem(STORAGE_KEY,JSON.stringify(records));return true}catch(e){alert("Errore di salvataggio: controlla lo spazio disponibile.");return false}}
+function filtered(){if(filterPeriod.value==="month")return records.filter(r=>String(r.date||"").slice(0,7)===filterMonth.value);if(filterPeriod.value==="year")return records.filter(r=>String(r.date||"").slice(0,4)===String(filterYear.value));return records}
+function periodLabel(){if(filterPeriod.value==="month"&&filterMonth.value){const[y,m]=filterMonth.value.split("-");return new Date(+y,+m-1,1).toLocaleDateString("it-IT",{month:"long",year:"numeric"})}return filterPeriod.value==="year"?`Anno ${filterYear.value}`:"Tutto lo storico"}
+function intervals(){const all=records.filter(r=>r.type==="fuel").sort((a,b)=>String(a.date).localeCompare(String(b.date)));const chosen=new Set(filtered().filter(r=>r.type==="fuel"));const out=[];for(let i=1;i<all.length;i++){const p=all[i-1],c=all[i];if(!chosen.has(c))continue;const km=parseNumber(c.odometer)-parseNumber(p.odometer),lit=parseNumber(c.liters);if(km>0&&lit>0)out.push({date:c.date,km,liters:lit,value:km/lit})}return out}
+function summary(){const rs=filtered(),fu=rs.filter(r=>r.type==="fuel"),ex=rs.filter(r=>r.type==="expense"),its=intervals();const liters=fu.reduce((s,r)=>s+(parseNumber(r.liters)||0),0),fc=fu.reduce((s,r)=>s+(parseNumber(r.totalCost)||0),0),ec=ex.reduce((s,r)=>s+(parseNumber(r.totalCost)||0),0),km=its.reduce((s,x)=>s+x.km,0),il=its.reduce((s,x)=>s+x.liters,0);$("#total-liters").textContent=liters.toLocaleString("it-IT",{minimumFractionDigits:1,maximumFractionDigits:1});$("#total-km").textContent=km.toLocaleString("it-IT",{maximumFractionDigits:0});$("#avg-consumption").textContent=il?`${(km/il).toFixed(1)} km/l`:"—";$("#fuel-cost").textContent=euro(fc);$("#expense-cost").textContent=euro(ec);$("#total-expenses").textContent=euro(fc+ec)}
+function history(){const body=$("#history-list");body.replaceChildren();const rs=[...filtered()].sort((a,b)=>String(b.date).localeCompare(String(a.date)));for(const r of rs){const tr=document.createElement("tr");const vals=[r.date||"—",r.type==="fuel"?"Rifornimento":"Spesa",r.type==="fuel"?`${r.fuelType||"Carburante"} · ${Number(r.liters||0).toLocaleString("it-IT")} L${r.station?" · "+r.station:""}`:(r.category||"Spesa"),euro(r.totalCost)];vals.forEach(v=>{const td=document.createElement("td");td.textContent=v;tr.append(td)});const td=document.createElement("td"),b=document.createElement("button");b.className="delete-button";b.textContent="Elimina";b.dataset.id=r.id;td.append(b);tr.append(td);body.append(tr)}if(!rs.length){const tr=document.createElement("tr"),td=document.createElement("td");td.colSpan=5;td.textContent="Nessun movimento nel periodo selezionato.";tr.append(td);body.append(tr)}}
+function chart(canvas,draw){const c=$("#"+canvas),w=c.clientWidth;if(!w)return;const h=280,d=window.devicePixelRatio||1;c.width=w*d;c.height=h*d;c.style.height=h+"px";const x=c.getContext("2d");x.setTransform(d,0,0,d,0,0);x.clearRect(0,0,w,h);draw(x,w,h)}
+function charts(){const rs=filtered(),its=intervals(),label=periodLabel();["consumption-period","trend-period","monthly-period","cost-period"].forEach(k=>$("#"+k).textContent=label);const css=getComputedStyle(document.documentElement),ink=css.getPropertyValue("--ink").trim(),muted=css.getPropertyValue("--muted").trim(),grid=css.getPropertyValue("--line").trim(),blue="#1677ff",orange="#ff8a24",green="#18a66a",purple="#8b5cf6";
+const bucket=d=>filterPeriod.value==="all"?String(d).slice(0,4):filterPeriod.value==="year"?String(d).slice(0,7):String(d).slice(0,7);
+const labelFor=k=>filterPeriod.value==="all"?k:filterPeriod.value==="year"?new Date(+k.slice(0,4),+k.slice(5,7)-1,1).toLocaleDateString("it-IT",{month:"short"}):label;
+const cons=new Map();its.forEach(x=>{const k=bucket(x.date),v=cons.get(k)||{km:0,l:0};v.km+=x.km;v.l+=x.liters;cons.set(k,v)});const cd=[...cons].sort((a,b)=>a[0].localeCompare(b[0])).map(([k,v])=>({label:labelFor(k),value:v.km/v.l,km:v.km,l:v.l}));
+function empty(ctx,w,h,msg){ctx.fillStyle=muted;ctx.textAlign="center";ctx.font="13px sans-serif";ctx.fillText(msg,w/2,h/2)}
+function axis(ctx,w,h,max,step,suffix=""){const L=48,R=12,T=20,B=52,pw=w-L-R,ph=h-T-B;ctx.font="11px sans-serif";ctx.textAlign="right";for(let v=0;v<=max+step/2;v+=step){const y=h-B-v/max*ph;ctx.strokeStyle=grid;ctx.beginPath();ctx.moveTo(L,y);ctx.lineTo(w-R,y);ctx.stroke();ctx.fillStyle=muted;ctx.fillText(`${v.toLocaleString("it-IT")}${suffix}`,L-6,y)}return{L,R,T,B,pw,ph}}
+chart("consumption-chart",(c,w,h)=>{if(!cd.length){empty(c,w,h,"Servono almeno due rifornimenti validi");return}const km=cd.reduce((s,x)=>s+x.km,0),l=cd.reduce((s,x)=>s+x.l,0),v=km/l,max=Math.max(5,Math.ceil(v/5)*5),st=Math.max(1,Math.ceil(max/5)),a=axis(c,w,h,max,st," km/l"),bw=Math.min(76,a.pw*.4),bh=v/max*a.ph,x=a.L+(a.pw-bw)/2,y=h-a.B-bh;c.fillStyle=blue;c.fillRect(x,y,bw,bh);c.fillStyle=ink;c.font="bold 14px sans-serif";c.textAlign="center";c.fillText(v.toFixed(2)+" km/l",w/2,Math.max(14,y-9));c.fillStyle=muted;c.font="11px sans-serif";c.fillText(label,w/2,h-25);c.fillStyle=blue;c.font="bold 11px sans-serif";c.fillText("■ Consumo medio",w/2,h-6)});
+chart("trend-chart",(c,w,h)=>{if(!cd.length){empty(c,w,h,"Dati insufficienti nel periodo");return}const max=Math.max(5,Math.ceil(Math.max(...cd.map(x=>x.value))/5)*5),st=Math.max(1,Math.ceil(max/5)),a=axis(c,w,h,max,st," km/l"),pts=cd.map((v,i)=>({x:cd.length===1?a.L+a.pw/2:a.L+i*a.pw/(cd.length-1),y:h-a.B-v.value/max*a.ph,v}));c.strokeStyle=green;c.lineWidth=3;c.beginPath();pts.forEach((p,i)=>i?c.lineTo(p.x,p.y):c.moveTo(p.x,p.y));c.stroke();pts.forEach(p=>{c.fillStyle=green;c.beginPath();c.arc(p.x,p.y,4,0,Math.PI*2);c.fill();c.fillStyle=ink;c.font="bold 10px sans-serif";c.textAlign="center";c.fillText(p.v.value.toFixed(1),p.x,p.y-11);c.fillStyle=muted;c.fillText(p.v.label,p.x,h-25)})});
+const spend=new Map();rs.forEach(r=>{if(!validDate(r.date))return;const k=bucket(r.date),v=spend.get(k)||{fuel:0,other:0,label:labelFor(k)};if(r.type==="fuel")v.fuel+=parseNumber(r.totalCost)||0;else v.other+=parseNumber(r.totalCost)||0;spend.set(k,v)});const sd=[...spend].sort((a,b)=>a[0].localeCompare(b[0]));
+chart("monthly-chart",(c,w,h)=>{if(!sd.length){empty(c,w,h,"Nessuna spesa nel periodo");return}const maxv=Math.max(10,...sd.map(([,v])=>v.fuel+v.other)),step=Math.max(10,Math.ceil(maxv/5/10)*10),max=Math.ceil(maxv/step)*step,a=axis(c,w,h,max,step," €"),slot=a.pw/sd.length,bw=Math.min(48,slot*.55);sd.forEach(([k,v],i)=>{const x=a.L+i*slot+(slot-bw)/2,base=h-a.B,fh=v.fuel/max*a.ph,oh=v.other/max*a.ph;c.fillStyle=blue;c.fillRect(x,base-fh,bw,fh);c.fillStyle=orange;c.fillRect(x,base-fh-oh,bw,oh);c.fillStyle=muted;c.font="10px sans-serif";c.textAlign="center";c.fillText(v.label,x+bw/2,h-29)});c.font="bold 11px sans-serif";c.textAlign="center";c.fillStyle=blue;c.fillText("■ Carburante",w/2-60,h-7);c.fillStyle=orange;c.fillText("■ Altre spese",w/2+65,h-7)});
+const cats=new Map();rs.forEach(r=>{const n=r.type==="fuel"?"Carburante":r.category||"Altre spese",v=parseNumber(r.totalCost)||0;if(v>0)cats.set(n,(cats.get(n)||0)+v)});const palette=[blue,orange,green,purple,"#d946ef","#0891b2","#ca8a04","#64748b"];
+chart("cost-chart",(c,w,h)=>{const items=[...cats].sort((a,b)=>b[1]-a[1]),total=items.reduce((s,x)=>s+x[1],0);if(!total){empty(c,w,h,"Nessuna spesa nel periodo");return}const cx=w/2,cy=105,r=66;let a=-Math.PI/2;items.forEach(([n,v],i)=>{const sl=v/total*Math.PI*2;c.beginPath();c.moveTo(cx,cy);c.arc(cx,cy,r,a,a+sl);c.closePath();c.fillStyle=palette[i%palette.length];c.fill();a+=sl});c.fillStyle=ink;c.font="bold 14px sans-serif";c.textAlign="center";c.fillText(euro(total),cx,cy+5);let y=190;items.slice(0,5).forEach(([n,v],i)=>{c.fillStyle=palette[i%palette.length];c.fillRect(15,y-9,10,10);c.fillStyle=ink;c.font="bold 10px sans-serif";c.textAlign="left";c.fillText(`${n}: ${euro(v)} (${(v/total*100).toFixed(1)}%)`,30,y);y+=17});if(items.length>5){c.fillStyle=muted;c.fillText(`+ ${items.length-5} altre categorie`,30,y)}})}
+function refresh(){filterMonth.hidden=filterPeriod.value!=="month";filterYear.hidden=filterPeriod.value!=="year";summary();history();charts()}
+[filterPeriod,filterMonth,filterYear].forEach(el=>el.addEventListener("change",refresh));
+$("#history-list").addEventListener("click",e=>{const b=e.target.closest(".delete-button");if(!b||!confirm("Vuoi eliminare questo movimento?"))return;const old=records;records=records.filter(r=>r.id!==b.dataset.id);if(!save())records=old;refresh()});
+const form=$("#entry-form"),type=$("#record-type");
+function updateFields(){const fuel=type.value==="fuel";$("#fuel-fields").hidden=!fuel;$("#expense-fields").hidden=fuel;$("#fuel-fields").querySelectorAll("input,select").forEach(x=>x.disabled=!fuel);$("#expense-fields").querySelectorAll("input,select").forEach(x=>x.disabled=fuel)}
+type.addEventListener("change",updateFields);
+form.addEventListener("submit",e=>{e.preventDefault();if(!storageHealthy)return alert("Archivio non disponibile.");let r;if(type.value==="fuel"){const liters=parseNumber($("#fuel-liters").value),cost=parseNumber($("#fuel-cost-input").value),odo=parseNumber($("#fuel-odometer").value),date=$("#fuel-date").value;if(!validDate(date)||!Number.isFinite(odo)||odo<0||!Number.isFinite(liters)||liters<=0||!Number.isFinite(cost)||cost<=0)return alert("Controlla data, chilometraggio, litri e costo.");r={id:id(),type:"fuel",date,odometer:odo,fuelType:$("#fuel-type").value,liters,totalCost:cost,station:$("#fuel-station").value.trim(),note:$("#fuel-note").value.trim()}}else{const date=$("#expense-date").value,cost=parseNumber($("#expense-cost-input").value);if(!validDate(date)||!Number.isFinite(cost)||cost<=0)return alert("Controlla data e costo.");r={id:id(),type:"expense",date,category:$("#expense-category").value,totalCost:cost,vendor:$("#expense-vendor").value.trim(),note:$("#expense-note").value.trim()}}records.push(r);if(!save()){records.pop();return}form.reset();updateFields();refresh();alert("Movimento salvato correttamente!")});
+function download(name,blob){const url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)}
+function csvCell(v){return '"'+String(v??"").replace(/"/g,'""')+'"'}
+$("#export-csv").addEventListener("click",()=>{const rows=[["Data","Tipo","Dettaglio","Chilometraggio km","Litri","Costo euro","Distributore/Fornitore","Note"],...filtered().map(r=>[r.date,r.type==="fuel"?"Rifornimento":"Spesa",r.type==="fuel"?r.fuelType:r.category,r.odometer??"",r.liters??"",r.totalCost,r.station||r.vendor||"",r.note||""])];download("mypit-movimenti.csv",new Blob(["\\ufeff"+rows.map(row=>row.map(csvCell).join(";")).join("\\r\\n")],{type:"text/csv;charset=utf-8"}))});
+$("#export-pdf").addEventListener("click",()=>{const rows=filtered().slice().sort((a,b)=>String(a.date).localeCompare(String(b.date)));const html=`<!doctype html><html lang="it"><meta charset="utf-8"><title>MyPit - Movimenti</title><style>body{font:12px Arial;padding:24px;color:#111}h1{color:#0560aa}table{width:100%;border-collapse:collapse}th,td{border:1px solid #bbb;padding:7px;text-align:left}th{background:#eaf2fa}@media print{button{display:none}}</style><h1>MyPit - Movimenti</h1><p>Periodo: ${periodLabel()}</p><table><thead><tr><th>Data</th><th>Tipo</th><th>Dettaglio</th><th>Km</th><th>Litri</th><th>Costo</th></tr></thead><tbody>${rows.map(r=>`<tr><td>${r.date||""}</td><td>${r.type==="fuel"?"Rifornimento":"Spesa"}</td><td>${r.type==="fuel"?(r.fuelType||""):(r.category||"")}</td><td>${r.odometer??""}</td><td>${r.liters??""}</td><td>${euro(r.totalCost)}</td></tr>`).join("")}</tbody></table><script>window.onload=()=>window.print()<\\/script></html>`;const win=window.open("","_blank");if(!win){alert("Consenti i popup per creare il PDF.");return}win.document.write(html);win.document.close()});
+$("#export-backup").addEventListener("click",()=>download(`mypit-backup-${new Date().toISOString().slice(0,10)}.json`,new Blob([JSON.stringify({app:"MyPit",version:1,exportedAt:new Date().toISOString(),records},null,2)],{type:"application/json"})));
+$("#import-backup").addEventListener("click",()=>$("#backup-file").click());
+$("#backup-file").addEventListener("change",async e=>{const file=e.target.files[0];if(!file)return;try{const data=JSON.parse(await file.text()),incoming=Array.isArray(data)?data:data.records;if(!Array.isArray(incoming))throw Error("Formato backup non riconosciuto");if(!incoming.every(r=>r&&typeof r==="object"&&(r.type==="fuel"||r.type==="expense")&&validDate(r.date)))throw Error("Il backup contiene movimenti non validi");if(!confirm(`Importare ${incoming.length} movimenti? I dati attuali saranno mantenuti; i duplicati con lo stesso ID saranno saltati.`))return;const ids=new Set(records.map(r=>r.id));const add=incoming.filter(r=>!r.id||!ids.has(r.id)).map(r=>({...r,id:r.id||id()}));records.push(...add);if(!save())return;refresh();alert(`Importazione completata: ${add.length} nuovi movimenti aggiunti.`)}catch(err){alert("Backup non importato: "+err.message)}finally{e.target.value=""}});
+const regTab=$("#tab-registro"),histTab=$("#tab-storico"),chartTab=$("#tab-grafici"),regPanel=$("#panel-registro"),histPanel=$("#panel-storico"),chartPanel=$("#panel-grafici"),filterControl=$("#period-filter-control");
+function activate(tab){const slot=tab===regTab?regPanel.querySelector(".summary-section"):tab===histTab?$("#period-filter-slot-storico"):$("#period-filter-slot-grafici");if(tab===regTab)slot.insertBefore(filterControl,slot.firstChild);else slot.append(filterControl);[regPanel,histPanel,chartPanel].forEach(p=>p.hidden=true);[regTab,histTab,chartTab].forEach(t=>t.classList.toggle("is-active",t===tab));(tab===regTab?regPanel:tab===histTab?histPanel:chartPanel).hidden=false;if(tab!==regTab)refresh();else summary()}
+regTab.addEventListener("click",()=>activate(regTab));histTab.addEventListener("click",()=>activate(histTab));chartTab.addEventListener("click",()=>activate(chartTab));
+function theme(t){document.documentElement.dataset.theme=t;$("#theme-toggle-icon").textContent=t==="dark"?"☀":"☾";$("#theme-toggle-label").textContent=t==="dark"?"Chiaro":"Scuro";try{localStorage.setItem(THEME_STORAGE_KEY,t)}catch(e){}}
+$("#theme-toggle").addEventListener("click",()=>theme(document.documentElement.dataset.theme==="dark"?"light":"dark"));
+try{theme(localStorage.getItem(THEME_STORAGE_KEY)==="dark"?"dark":"light")}catch(e){theme("light")}
+records=load();activate(regTab);updateFields();refresh();window.addEventListener("resize",()=>{if(!chartPanel.hidden)charts()});
+if("serviceWorker"in navigator){let refreshing=false;navigator.serviceWorker.register("./service-worker.js").then(reg=>{reg.update();document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")reg.update()});navigator.serviceWorker.addEventListener("controllerchange",()=>{if(!refreshing){refreshing=true;location.reload()}})}).catch(console.error)}

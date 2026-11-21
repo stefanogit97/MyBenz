@@ -3,22 +3,30 @@
   "name": "MyPit",
   "short_name": "MyPit",
   "description": "Registro rifornimenti e spese auto",
-  "start_url": "/",
-  "scope": "/",
+  "start_url": "/MyPit/",
+  "scope": "/MyPit/",
   "display": "standalone",
   "background_color": "#eef3f1",
-  "theme_color": "#244c43",
+  "theme_color": "#005ca9",
   "orientation": "portrait",
   "icons": [
     {
       "src": "icon-192.png",
       "sizes": "192x192",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any"
     },
     {
       "src": "icon-512.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ]
 }
