@@ -79,8 +79,6 @@ const expenseFields = $("#expense-fields");
 
 const fuelDate = $("#fuel-date");
 const fuelOdometer = $("#fuel-odometer");
-const fuelFillType = $("#fuel-fill-type");
-const fuelType = $("#fuel-type");
 const fuelLiters = $("#fuel-liters");
 const fuelCostInput = $("#fuel-cost-input");
 const fuelStation = $("#fuel-station");
