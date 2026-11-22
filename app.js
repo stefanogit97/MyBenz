@@ -51,7 +51,7 @@ $("#export-pdf").addEventListener("click", () => {
     );
 
   pdf.setFontSize(18);
-  pdf.text("MyPit - Movimenti", 14, 18);
+  pdf.text("MyPit - Pieni e Spese", 14, 18);
 
   pdf.setFontSize(11);
   pdf.text(
