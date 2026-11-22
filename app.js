@@ -38,7 +38,64 @@ form.addEventListener("submit",e=>{e.preventDefault();if(!storageHealthy)return 
 function download(name,blob){const url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)}
 function csvCell(v){return '"'+String(v??"").replace(/"/g,'""')+'"'}
 $("#export-csv").addEventListener("click",()=>{const rows=[["Data","Tipo","Dettaglio","Chilometraggio km","Litri","Costo euro","Distributore/Fornitore","Note"],...filtered().map(r=>[r.date,r.type==="fuel"?"Rifornimento":"Spesa",r.type==="fuel"?r.fuelType:r.category,r.odometer??"",r.liters??"",r.totalCost,r.station||r.vendor||"",r.note||""])];download("mypit-movimenti.csv",new Blob(["\\ufeff"+rows.map(row=>row.map(csvCell).join(";")).join("\\r\\n")],{type:"text/csv;charset=utf-8"}))});
-$("#export-pdf").addEventListener("click",()=>{const rows=filtered().slice().sort((a,b)=>String(a.date).localeCompare(String(b.date)));const html=`<!doctype html><html lang="it"><meta charset="utf-8"><title>MyPit - Movimenti</title><style>body{font:12px Arial;padding:24px;color:#111}h1{color:#0560aa}table{width:100%;border-collapse:collapse}th,td{border:1px solid #bbb;padding:7px;text-align:left}th{background:#eaf2fa}@media print{button{display:none}}</style><h1>MyPit - Movimenti</h1><p>Periodo: ${periodLabel()}</p><table><thead><tr><th>Data</th><th>Tipo</th><th>Dettaglio</th><th>Km</th><th>Litri</th><th>Costo</th></tr></thead><tbody>${rows.map(r=>`<tr><td>${r.date||""}</td><td>${r.type==="fuel"?"Rifornimento":"Spesa"}</td><td>${r.type==="fuel"?(r.fuelType||""):(r.category||"")}</td><td>${r.odometer??""}</td><td>${r.liters??""}</td><td>${euro(r.totalCost)}</td></tr>`).join("")}</tbody></table><script>window.onload=()=>window.print()<\\/script></html>`;const win=window.open("","_blank");if(!win){alert("Consenti i popup per creare il PDF.");return}win.document.write(html);win.document.close()});
+$("#export-pdf").addEventListener("click", () => {
+
+  const { jsPDF } = window.jspdf;
+
+  const pdf = new jsPDF();
+
+  const rows = filtered()
+    .slice()
+    .sort((a, b) =>
+      String(a.date).localeCompare(String(b.date))
+    );
+
+  pdf.setFontSize(18);
+  pdf.text("MyPit - Movimenti", 14, 18);
+
+  pdf.setFontSize(11);
+  pdf.text(
+    `Periodo: ${periodLabel()}`,
+    14,
+    26
+  );
+
+  pdf.autoTable({
+    startY: 34,
+
+    head: [[
+      "Data",
+      "Tipo",
+      "Dettaglio",
+      "Km",
+      "Litri",
+      "Costo"
+    ]],
+
+    body: rows.map(r => [
+
+      r.date || "",
+
+      r.type === "fuel"
+        ? "Rifornimento"
+        : "Spesa",
+
+      r.type === "fuel"
+        ? r.fuelType || ""
+        : r.category || "",
+
+      r.odometer ?? "",
+
+      r.liters ?? "",
+
+      euro(r.totalCost)
+
+    ])
+  });
+
+  pdf.save("MyPit_Movimenti.pdf");
+
+});
 $("#export-backup").addEventListener("click",()=>download(`mypit-backup-${new Date().toISOString().slice(0,10)}.json`,new Blob([JSON.stringify({app:"MyPit",version:1,exportedAt:new Date().toISOString(),records},null,2)],{type:"application/json"})));
 $("#import-backup").addEventListener("click",()=>$("#backup-file").click());
 $("#backup-file").addEventListener("change",async e=>{const file=e.target.files[0];if(!file)return;try{const data=JSON.parse(await file.text()),incoming=Array.isArray(data)?data:data.records;if(!Array.isArray(incoming))throw Error("Formato backup non riconosciuto");if(!incoming.every(r=>r&&typeof r==="object"&&(r.type==="fuel"||r.type==="expense")&&validDate(r.date)))throw Error("Il backup contiene movimenti non validi");if(!confirm(`Importare ${incoming.length} movimenti? I dati attuali saranno mantenuti; i duplicati con lo stesso ID saranno saltati.`))return;const ids=new Set(records.map(r=>r.id));const add=incoming.filter(r=>!r.id||!ids.has(r.id)).map(r=>({...r,id:r.id||id()}));records.push(...add);if(!save())return;refresh();alert(`Importazione completata: ${add.length} nuovi movimenti aggiunti.`)}catch(err){alert("Backup non importato: "+err.message)}finally{e.target.value=""}});
