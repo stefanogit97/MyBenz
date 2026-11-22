@@ -16,3 +16,10 @@
 :root[data-theme=dark]{color-scheme:dark;--paper:#111820;--surface:#1c2732;--ink:#fff;--muted:#c5ced8;--line:#3b4855;--brand:#0066cc;--brand-dark:#004f9e;--accent:#ff7900;--shadow:0 5px 18px #0004}:root[data-theme=dark] body{background:var(--paper);color:var(--ink)}:root[data-theme=dark] .topbar,:root[data-theme=dark] #panel-registro,:root[data-theme=dark] #panel-storico,:root[data-theme=dark] #panel-grafici{background:var(--surface)}:root[data-theme=dark] .brand-name,:root[data-theme=dark] h1,:root[data-theme=dark] h2{color:#fff}:root[data-theme=dark] .brand-tagline,:root[data-theme=dark] .intro-copy{color:var(--muted)}:root[data-theme=dark] .field label,:root[data-theme=dark] td{color:#fff}:root[data-theme=dark] .field input,:root[data-theme=dark] .field select,:root[data-theme=dark] #record-type,:root[data-theme=dark] .period-filter select,:root[data-theme=dark] .period-filter input{background:#253341;color:#fff;border-color:#536273}:root[data-theme=dark] .tabs{background:#253341}:root[data-theme=dark] .tab-button{color:#fff}:root[data-theme=dark] .theme-toggle,:root[data-theme=dark] .export-actions button{background:var(--accent);color:#111}
 @media(max-width:780px){.summary-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:700px){.charts-grid{grid-template-columns:1fr}}
 @media(max-width:520px){.topbar{padding:8px 12px}.brand{gap:17px}.brand-mark,.brand-logo{width:72px;height:72px}.brand-name{font-size:23px}.brand-tagline{max-width:180px;font-size:10px}.page{width:calc(100% - 20px);padding:22px 0}#panel-registro,#panel-storico,#panel-grafici{padding:16px}#entry-form,#fuel-fields,#expense-fields{grid-template-columns:1fr}.summary-card{min-height:100px;padding:13px}.summary-card strong{font-size:20px}.tab-button{padding:0 12px}.chart-card{padding:14px}.period-filter{align-items:stretch;gap:8px}.period-filter label{width:100%}.period-filter #filter-period,.period-filter #filter-month,.period-filter #filter-year{width:100%;min-width:0}}
+#panel-storico h2 {
+  margin-bottom: 6px;
+}
+
+#panel-storico .period-filter {
+  margin-top: 0;
+}
