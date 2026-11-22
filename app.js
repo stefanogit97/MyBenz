@@ -93,7 +93,14 @@ $("#export-pdf").addEventListener("click", () => {
     ])
   });
 
-  pdf.save("MyPit_Movimenti.pdf");
+  const blob = pdf.output("blob");
+const url = URL.createObjectURL(blob);
+
+window.open(url, "_blank");
+
+setTimeout(() => {
+  URL.revokeObjectURL(url);
+}, 60000);
 
 });
 $("#export-backup").addEventListener("click",()=>download(`mypit-backup-${new Date().toISOString().slice(0,10)}.json`,new Blob([JSON.stringify({app:"MyPit",version:1,exportedAt:new Date().toISOString(),records},null,2)],{type:"application/json"})));
