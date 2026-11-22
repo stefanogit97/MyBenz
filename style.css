@@ -19,6 +19,13 @@
 #panel-storico h2 {
   margin-bottom: 6px;
 }
+#panel-grafici > h2 {
+  margin-bottom: 6px;
+}
+
+#panel-grafici .period-filter {
+  margin-top: 0;
+}
 
 #panel-storico .period-filter {
   margin-top: 0;
